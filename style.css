@@ -1,0 +1,268 @@
+body{
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  margin: 15px;
+  padding: 0;
+  background: #e6e6e6;
+  color: #333;
+}
+
+h1{ margin: 0 0 14px 0; font-weight: 700; }
+
+.container{
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.controls{
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 5px 15px rgba(0,0,0,.10);
+}
+
+label{
+  display: block;
+  font-size: 13px;
+  margin: 10px 0 8px 0;
+}
+
+input[type="text"], input[type="file"], textarea, select{
+  width: 100%;
+  padding: 9px 10px;
+  border-radius: 8px;
+  border: 1px solid #cfcfcf;
+  font-size: 14px;
+  box-sizing: border-box;
+  background: #fff;
+}
+
+.dtoPage { 
+  padding: 12px; 
+}
+.dtoCard { 
+  background:#fff; 
+  border:1px solid rgba(0,0,0,.08); 
+  border-radius:12px; 
+  padding:12px; 
+  margin:12px 0; }
+
+.dtoCard h3 { 
+  margin: 0 0 8px 0; 
+}
+
+label.check{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0;
+}
+label.check input{ width: auto; }
+
+.btnrow{
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+button{
+  padding: 10px 14px;
+  font-size: 14px;
+  border: none;
+  border-radius: 8px;
+  background: #0078d4;
+  color: #fff;
+  cursor: pointer;
+}
+button:hover{ background: #005a9e; }
+
+button.secondary{ background: #475569; }
+button.secondary:hover{ background: #334155; }
+
+button.ghost{
+  background: #e2e8f0;
+  color: #0f172a;
+}
+button.ghost:hover{ background: #cbd5e1; }
+
+.hint{
+  font-size: 12px;
+  opacity: .75;
+  word-break: break-word;
+}
+
+hr{
+  border: none;
+  height: 1px;
+  background: #e6e6e6;
+  margin: 14px 0;
+}
+
+.log{
+  background: #111827;
+  color: #34d399;
+  padding: 12px;
+  height: 220px;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace;
+  border-radius: 10px;
+  font-size: 12.5px;
+}
+
+.previewWrap{
+  display: grid;
+  gap: 10px;
+}
+
+.previewTabs{
+  display: flex;
+  gap: 8px;
+}
+
+.tab{
+  background: #fff;
+  color: #0f172a;
+  border: 1px solid #d1d5db;
+}
+.tab.active{
+  border-color: #0078d4;
+  box-shadow: 0 0 0 3px rgba(0,120,212,.12);
+}
+
+.preview{
+  background: #fff;
+  border-radius: 12px;
+  height: 760px;
+  overflow: auto;
+  padding: 16px;
+  box-shadow: 0 5px 15px rgba(0,0,0,.10);
+}
+
+.preview.pdf{
+  background: #dbe3ee;
+  padding: 22px;
+}
+
+/* A4 sheet simulation */
+.sheet{
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto 18px auto;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(0,0,0,.18);
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+}
+
+.sheet .content{
+  padding: 13mm 20mm 12mm 17mm;
+  font-size: 12.5px;
+  color: #111827;
+}
+
+/* Editor */
+.editorBar { display:flex; gap:8px; margin-bottom:10px; flex-wrap: wrap; }
+.editorGrid { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+
+.paneHead{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:6px;
+}
+
+.findBar{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  min-width: 280px;
+}
+
+.findBar input{
+  font-size: 12.5px;
+  padding: 6px 8px;
+  border-radius: 8px;
+}
+
+.miniCheck{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-size: 12px;
+  opacity:.85;
+}
+.miniCheck input{ width:auto; }
+
+.pane textarea{
+  height: 320px;
+  font-family: ui-monospace, Consolas, "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.foOut{
+  margin-top: 8px;
+  background: #0b1220;
+  color: #b7ffda;
+  padding: 12px;
+  border-radius: 10px;
+  max-height: 260px;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+
+.param{
+  margin-bottom:8px;
+}
+
+.param label{
+  display:block;
+  font-size:12px;
+  color:#444;
+}
+
+.param input,
+.param textarea{
+  width:100%;
+  padding:4px;
+}
+
+.analysis{
+  margin-top:10px;
+  padding:6px;
+  font-size:13px;
+  background:#eef2f7;
+  border-radius:4px;
+  color:#333;
+}
+
+.findBar input.notfound {
+  outline: 2px solid #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+}
+
+
+.diag { display:grid; gap:10px; margin:10px 0; }
+.diagItem{ border:1px solid rgba(0,0,0,.12); border-radius:12px; padding:10px; background:#fff; }
+.diagItem.error{ border-color:#ef4444; background:rgba(239,68,68,.06); }
+.diagItem.warn{ border-color:#f59e0b; background:rgba(245,158,11,.08); }
+.diagItem.info{ border-color:#3b82f6; background:rgba(59,130,246,.08); }
+.diagItem h4{ margin:0 0 6px; font-size:14px; }
+.diagItem .meta{ font-size:12px; opacity:.8; margin-bottom:6px; }
+.diagItem pre{ margin:8px 0 0; padding:8px; border-radius:10px; background:rgba(0,0,0,.04); overflow:auto; }
+.diagItem .fix{ margin-top:8px; padding:8px; border-radius:10px; background:rgba(0,0,0,.03); }
+
+
+.dtoPage { padding: 12px; }
+.dtoTop { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+.dtoCard { background:#fff; border:1px solid rgba(0,0,0,.08); border-radius:12px; padding:12px; margin:12px 0; }
+.dtoDocWrap { border:1px solid rgba(0,0,0,.08); border-radius:12px; overflow:hidden; }
+.dtoDocHead { display:flex; gap:10px; align-items:center; padding:10px; background:#f7f7f9; border-bottom:1px solid rgba(0,0,0,.08); }
+.dtoDoc { white-space:pre-wrap; font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace; font-size:12px; padding:12px; max-height:60vh; overflow:auto; background:#fff; }
+.dtoFind { padding:8px 10px; border:1px solid rgba(0,0,0,.15); border-radius:10px; width:320px; }
+.btnSmall { padding:8px 10px; border:1px solid rgba(0,0,0,.15); border-radius:10px; background:#fff; cursor:pointer; }
+.btnSmall:hover { background:#f2f2f5; }
+mark { background: #fff3a0; }

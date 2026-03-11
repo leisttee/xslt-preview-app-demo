@@ -1,0 +1,60 @@
+const xml = `
+<SupplyAgreementDto ID="${escapeHtml(val("id"))}">
+  <ProductionSiteCode>${escapeHtml(val("production"))}</ProductionSiteCode>
+
+  <SignatureTempFileName>${escapeHtml(val("signatureFile") || "")}</SignatureTempFileName>
+
+  <OutputDate>${escapeHtml(val("outputDate") || "2026-03-10")}</OutputDate>
+  <FirstDate>${escapeHtml(val("firstDate") || "2026-04-01")}</FirstDate>
+  <PeriodFirstDate>${escapeHtml(val("periodFirstDate") || "2026-04-01")}</PeriodFirstDate>
+  <LastDate>${escapeHtml(val("lastDate") || "")}</LastDate>
+
+  <VatRatePercent>${escapeHtml(val("vatRate") || "24")}</VatRatePercent>
+
+  <RepresentativeClientLastNameFirst>${escapeHtml(val("repName") || "Testaaja Testi")}</RepresentativeClientLastNameFirst>
+
+  <OwnerClient ID="${escapeHtml(val("ownerId") || "123456")}">
+    <LastNameFirst>${escapeHtml(val("ownerName") || "Testaaja Testi")}</LastNameFirst>
+    <Code>${escapeHtml(val("ownerCode") || "123456-789A")}</Code>
+    <PersonalCodeHidden>${escapeHtml(val("ownerPCH") || "")}</PersonalCodeHidden>
+    <Address>
+      <PostalAddressPrint>${escapeHtml(val("ownerAddr") || "Testikatu 1 A 2&#x0A;00100 Helsinki")}</PostalAddressPrint>
+    </Address>
+  </OwnerClient>
+
+  <MeteringPoint>
+    <GridOperator>${escapeHtml(val("gridOperator") || "ESIMERKKIVERKKO OY")}</GridOperator>
+  </MeteringPoint>
+
+  <Object>
+    <FinnishMeteringPointID>${escapeHtml(val("mpId") || "123456789012345678")}</FinnishMeteringPointID>
+    <AddressLines>${escapeHtml(val("mpAddr") || "Testikäyttöpaikantie 1 A 2&#x0A;00100 Helsinki")}</AddressLines>
+  </Object>
+
+  <Product>
+    <ID>${escapeHtml(val("productId"))}</ID>
+    <Name>${escapeHtml(val("productName") || "Esimerkkituote")}</Name>
+
+    <IsNpsProduct>${escapeHtml(val("nps"))}</IsNpsProduct>
+    <HasProfileCost>${escapeHtml(val("profileCost"))}</HasProfileCost>
+    <FixedPrice>${escapeHtml(val("fixedPrice"))}</FixedPrice>
+    <FixedQuarterly>${escapeHtml(val("fixedQuarterly"))}</FixedQuarterly>
+    <FixedIndefinitelyPrice>false</FixedIndefinitelyPrice>
+
+    <MonthlyFee>${escapeHtml(val("monthlyFee") || "5.00")}</MonthlyFee>
+    <MonthlyFeeWithVat>${escapeHtml(val("monthlyFeeVat") || "6.20")}</MonthlyFeeWithVat>
+
+    <Tariff>
+      <BasePrice>${escapeHtml(val("basePrice") || "9.50")}</BasePrice>
+      <BasePriceWithVat>${escapeHtml(val("basePriceVat") || "11.78")}</BasePriceWithVat>
+
+      <DayPrice>${escapeHtml(val("dayPrice") || "")}</DayPrice>
+      <DayPriceWithVat>${escapeHtml(val("dayPriceVat") || "")}</DayPriceWithVat>
+      <NightPrice>${escapeHtml(val("nightPrice") || "")}</NightPrice>
+      <NightPriceWithVat>${escapeHtml(val("nightPriceVat") || "")}</NightPriceWithVat>
+    </Tariff>
+
+    <Margin>${escapeHtml(val("margin") || "0.30")}</Margin>
+    <MarginWithVat>${escapeHtml(val("marginVat") || "0.37")}</MarginWithVat>
+  </Product>
+</SupplyAgreementDto>`.trim();

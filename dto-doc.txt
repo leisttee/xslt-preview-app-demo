@@ -1,0 +1,698 @@
+Table of Contents
+1.	Printout templates in customer projects	2
+2.	List of DTO Classes	2
+3.	PostDto	3
+4.	ContractDto : PostDto	4
+5.	AffiliationContractDto : ContractDto	4
+6.	AffiliationInvoiceRowDto	5
+7.	AffiliationObjectDto	5
+8.	NetworkContractDto : ContractDto	5
+9.	SupplyAgreementDto : ContractDto	6
+10.	SalesContractDto : ContractDto	6
+11.	SalesContractAppendixes	7
+12.	PriceListItemDto	7
+13.	SalesContractHistoryDto	7
+14.	SalesContractHistoryDto.Parameters	8
+15.	SalesContractHistoryDto.Row	8
+16.	BackgroundContractDto : ContractDto (not used any more)	8
+17.	SystemUserDto	8
+18.	ClientDto	8
+19.	AnnualConsumptionReportDto	8
+20.	ReportPeriodConsumptionDto	9
+21.	MeteringPointDto	9
+22.	ObjectDto	9
+23.	PaymentPlanDto	10
+24.	PlanInstalmentDto	10
+25.	DepositDto	10
+26.	ProductDto	10
+27.	ProductInfoDto	10
+28.	ProductPartDto	11
+29.	ServicePriceListItemDto	11
+30.	TariffDto	11
+31.	ConnectionEndNoticeDto : PostDto	12
+32.	DataContainer	12
+33.	WarningDto	12
+34.	WarningDto.InvoiceDebt	13
+35.	WorkOrderDto : PostDto	13
+36.	WorkOrderDto.SealInfo	14
+37.	WorkOrderDto.SupplyAgreementBalance	14
+
+1.	Printout templates in customer projects
+Parameters usable in templates (DTO) are in code .../Synerall/_git/Core/Source/BusinessLogic/Export/DTOs
+There can be utility (electricity, heating, gas, water, waste), language (Finnish, Swedish, English, Estonian, Russian etc) or sending channel (post, e-mail, gsm) variations, depending on customer.
+List of template types in main branch:
+•	Footer of general e-mail messages sent to customers by the company
+•	Connection contract
+•	Grid agreement
+•	Supply agreement and microproduction purchase agreement (in one common template)
+•	Supply agreement renewal offer
+•	Invoice
+•	Invoice payment reminder: 1st, 2nd, 3rd, 4th
+•	Disconnection warning
+•	Payment plan
+•	Annual consumption report
+•	Planned outage start notice
+•	Planned outage update notice
+•	Planned outage end notice
+•	Planned outage cancellation notice
+•	Actual outage start notice
+•	Actual outage update notice
+•	Hourly prices for Spot products
+•	Work order
+•	Work order notice to customer
+•	Meter reading reminder
+•	Connection end notice
+•	Background contract (not used any more)
+
+2.	List of DTO Classes
+This list is in alphabetic order, in following chapters the Dto-s are grouped by related logic.PostDto and ContractDto are abstract classes for defining common attributes.
+Name	Modifier	Sub-DTOs	Summary
+AffiliationContractDto	public		Connection contract
+AffiliationInvoiceRowDto	public		
+AffiliationObjectDto	public		
+AnnualConsumptionReportDto	public		Consumption report printout
+BackgroundContractDto	public		(Not used any more)
+ClientDto	public		PostDto defines OwnerClient as instance of Client 
+ConnectionEndNoticeDto	public		Connection contract end printout
+ContractDto	public abstract	AffiliationContractDto, BackgroundContractDto, NetworkContractDto, SalesContractDto, SupplyAgreementDto	
+DataContainer	public		
+DepositDto	public		
+MeteringPointDto	public		
+NetworkContractDto	public		Grid agreement
+NotificationEmailDto	public		
+ObjectDto	public		
+PaymentPlanDto	public		
+PlanInstalmentDto	public		Payment plan installments
+PostDto	public abstract	ContractDto, ConnectionEndNoticeDto, WorkOrderDto	Common attributes
+PriceListItemDto	public		
+ProductDto	public		Grid product
+ProductInfoDto	public		
+ProductPartDto	public		Grid product parts
+ReportPeriodConsumptionDto	public		Related to annual consumption report
+SalesContractAppendixes	public		Müügilepingu lisad (kaaskiri, toodete hinnakiri, teenuste hinnakiri)
+SalesContractDto	public		
+SalesContractHistoryDto	public		Müügilepingute klass, kus on kirjas kõik müügilepingute haldamiseks vajalik loogika.
+SalesContractHistoryDto.Parameters	public		
+SalesContractHistoryDto.Row	public		
+SecurityDepositReceiptDto	public		
+SecurityDepositUsageDto	public		
+SecurityDepositUsageHistoryDto	public		
+ServicePriceListItemDto	public		Used in service price list
+SupplyAgreementDto	public		
+SupplyAgreementRenewalDto	public		
+SupplyFixedRatePeriodDto	public		
+SupplyFixedRatePeriodEndingSoonDto	public		
+SupplyFixedRatePeriodHasEndedDto	public		
+SystemUserDto	public		System user is signer of agreement in some cases.
+TariffDto	public		
+WarningDto	public		Disconnection warning printout
+WarningDto.InvoiceDebt	public		
+WorkOrderDto	public		Work order printout
+WorkOrderDto.SealInfo	public		
+WorkOrderDto.SupplyAgreementBalance	public		
+
+3.	PostDto 
+HeaderResources	private static	5 rows of translations from BillPrintGenerator: ArvePäiseRida1…ArvePäiseRida5
+Headers	public	Translations from HeaderResources
+OwnerClient	public	Contains ClientDTO structure
+SignatureTempFileName	public	Image of Signature of system user who signs the agreement
+
+4.	ContractDto : PostDto
+BillPayer	public	
+BillPayerAddress	public	
+BillPayerBusinessCode	public	
+BillPayerID	public	
+BillPayerPersonalCode	public	
+ClientReference	public	
+CompanyName	public	
+ID	public	
+IsHeatContract	public	
+Object	public	
+SignedClient	public	
+
+5.	AffiliationContractDto : ContractDto
+AffiliationDeadline	public	
+ClientAddressPrintUpper	public	
+Comment	public	
+Compensation	public	
+ConnectionFee	public	
+ConnectionFeeTotal	public	
+ConnectionProducts	public	
+ConnectionWorksFee	public	
+Deadline	public	
+DeadlineInDays	public	
+DueDate	public	
+HasRefundable	public	
+Initial	public	
+InvoiceAltSum	public	
+InvoiceNotice	public	
+InvoiceNumber	public	
+InvoiceRows	public	
+InvoiceSum	public	
+InvoiceSumToPay	public	
+InvoiceSumWithoutTaxes	public	
+InvoiceTaxes	public	
+NoticeMandatory	public	
+Number	public	
+Objects	public	
+OutputDate	public	
+OwnerChange	public	
+PreviousContract	public	
+PreviousOwnerName	public	
+PreviousSignedDate	public	
+ProjectName	public	
+RefundableFeeTotal	public	
+Representative	public	
+RepresentativePersons	public	
+RepresentativeWarrant	public	
+SendByPost	public	
+SignedLocation	public	
+SignedName	public	
+SignedPhone	public	
+SignedProfession	public	
+SpecialTerms	public	
+StartDate	public	
+TerminationDate	public	
+Type	public	
+
+6.	AffiliationInvoiceRowDto
+Description	public	
+Price	public	
+Quantity	public	
+Sum	public	
+Taxes	public	
+
+7.	AffiliationObjectDto
+Address	public	
+AddressPrintUpper	public	
+BuildingType	public	
+CadastralCode	public	
+ConnectionCableLength	public	
+ConnectionCableType	public	
+ConnectionDate	public	
+ConnectionPoint	public	
+ConnectionReason	public	
+ConnectionReasonID	public	
+Coordinates	public	
+Municipality	public	
+NewHighVoltage	public	
+NewMainFuse	public	
+NewPower	public	
+NewReadersLocation	public	
+NewTechpointLocation	public	
+NewTechPointType	public	
+NewVoltage	public	
+OldHighVoltage	public	
+OldMainFuse	public	
+OldPower	public	
+OldReadersLocation	public	
+OldTechpointLocation	public	
+OldVoltage	public	
+PostCode	public	
+Settlement	public	
+Substation	public	
+Township	public	
+
+8.	NetworkContractDto : ContractDto
+Comment	public	
+ContractAffirmationLocation	public	
+CreationDate	public	
+Description	public	
+EndDate	public	
+OutputDate	public	
+SignedDate	public	
+Substations	public	
+
+9.	SupplyAgreementDto : ContractDto
+AdvanceBillingMonths	public	
+BillDeadlineDayOfTheMonth	public	
+BillDeadlineInDays	public	
+BillingAddresses	public	
+BillingFrequency	public	
+ContractTermEstimatedConsumption	public	
+CreationClient	public	
+EInvoiceName	public	
+EstimatedConsumption	public	
+FirstDate	public	
+InvoicingWithoutVAT	public	
+IsCreatedInProtal	public	
+IsPurchaseContract	public	
+IsSipooGrid	public	
+LastDate	public	
+MeteringPoints	public	
+MoveIn	public	
+OutputDate	public	
+PeriodFirstDate	public	
+Product	public	
+ProductionSiteCode	public	
+ProductName	public	
+RelatedSagrIDs	public	
+RenewalCancellationLastDate	public	
+RepresentativeClient	public	
+RepresentativeClientLastNameFirst	public	
+RepresentativeClientRole	public	
+SbonusClient	public	
+SellerBankAccount	public	
+SellerBic	public	
+SignedLocation	public	
+SpecialTerms	public	
+Utility	public	
+Vat	public	
+
+10.	SalesContractDto : ContractDto
+ActiveEnergy	public	
+ActualReadingServicePerformer	public	
+AdvanceBillingMonths	public	
+BeginContractDate	public	
+BillDeadlineInDays	public	
+BillingAddresses	public	
+BillingFrequency	public	
+ConnectionContract	public	
+ConnectionFee	public	
+EndContractDate	public	
+HeatCarrierFlow	public	
+HeatLoad	public	
+HeatPower	public	
+HotWaterLoad	public	
+IsMicroGeneration	public	
+IsSipooGrid	public	
+OutputClient	public	
+OutPutDate	public	
+OverdueCharge	public	
+PreviousChangeContract	public	
+PreviousContract	public	
+Producer	public	
+Products	public	
+ReadingDate	public	
+ReasonID	public	
+RepresentativeClient	public	
+RepresentativeClientRole	public	
+SignedLocation	public	
+SpecialTerms	public	
+SumLoad	public	
+TechpointType	public	
+ValidityStartDate	public	
+Vat	public	
+VentilationLoad	public	
+WithTerms	public	
+
+11.	SalesContractAppendixes
+Müügilepingu lisad (kaaskiri, toodete hinnakiri, teenuste hinnakiri)
+PriceListStartDate	public	
+Products	public	
+ProductsAltCurrency	public	
+ReadingServicePerformer	public	
+Services	public	
+ServicesAltCurrency	public	
+ServicesPriceListStartDate	public	
+SystemUser	public	
+WithNetworkContract	public	
+
+12.	PriceListItemDto
+AltPriceWithVat	public	Alternatiivses valuutas hind koos käibemaksuga
+EnergyPrice	public	Energia
+Excise	public	Aktsiis
+Name	public	Toote või toote osa nimi
+NetworkEnergyPrice	public	Võrguenergia
+Price	public	Hind kokku
+PriceWithVat	public	Hind koos käibemaksuga
+RenewableEnergyPrice	public	TaastuvEnergia
+SubItems	public	
+UnitOfMeasure	public	Mõõteühik
+
+13.	SalesContractHistoryDto 
+Müügilepingute klass, kus on kirjas kõik müügilepingute haldamiseks vajalik loogika
+BeginDate	public	Ajaloo väljastamise kuupäev
+c	private	
+Contract	public	
+Creator	public	Ajaloo väljastamise kuupäev
+Date	public	Ajaloo väljastamise kuupäev
+EndDate	public	Ajaloo väljastamise kuupäev
+from	private	
+PeriodDeposits	public	Ajaloo väljastamise kuupäev
+PeriodInvoices	public	Ajaloo väljastamise kuupäev
+Rows	public	
+ShowBalance	public	Ajaloo väljastamise kuupäev
+to	private	
+
+14.	SalesContractHistoryDto.Parameters
+Bills	public	
+Contract	public	
+Deposits	public	
+Events	public	
+From	public	
+Outages	public	
+Readings	public	
+ShowBalance	public	
+To	public	
+Warnings	public	
+
+15.	SalesContractHistoryDto.Row
+Balance	public	
+Description	public	
+EventDate	public	
+
+16.	BackgroundContractDto : ContractDto (not used any more)
+MeteringPoints	public	
+OutputDate	public	
+
+17.	SystemUserDto
+ClientName	public	
+PrimaryEmail	public	
+PrimaryPhone	public	
+Profession	public	
+
+18.	ClientDto
+Address	public	
+Code	public	
+EIC	public	
+ID	public	
+isBusinessCustomer	public	
+LastNameFirst	public	
+LongAddress	public	
+Name	public	
+OtherCodes	public	
+PersonalCode	public	
+PersonalCodeHidden	public	
+PrimaryEmail	public	
+PrimaryFax	public	
+PrimaryPhone	public	
+Role	public	
+
+19.	AnnualConsumptionReportDto
+ActiveHeatCarrierFlow	public	
+AdditionalGraphPath	public	
+AvgLastYearBasicFees	public	
+AvgLastYearEnergyFees	public	
+Client	public	
+FeesTotal	public	
+GraphPath	public	
+HeatPower	public	
+IsGasContract	public	
+IsSipooGrid	public	
+LastYear	public	
+LastYearBasicFees	public	
+LastYearConsumptionPerVolumeUnit	public	
+LastYearConsumptionPerVolumeUnitNormalized	public	
+LastYearEnergyFees	public	
+Object	public	
+ReportConsumptions	public	
+ReportDate	public	
+ReportPeriod	public	
+
+20.	ReportPeriodConsumptionDto
+Consumption	public	
+Period	public	
+Tariff	public	
+
+21.	MeteringPointDto
+EIC	public	
+FinnishMeteringPointID	public	
+GridArea	public	
+GridOperator	public	
+LocationAddress	public	
+
+22.	ObjectDto
+Address	public	
+AddressLines	public	
+AgreedCarrierFlow	public	
+BuildingNetoArea	public	
+BuildingType	public	
+BuildingVolume	public	
+CadastralCode	public	
+ConstructionYear	public	
+FinnishMeteringPointID	public	
+GasPower	public	
+GridArea	public	
+HeatPower	public	
+HighVoltage	public	
+HotWaterLoad	public	
+ID	public	
+LastPoweredAffiliationContractNumber	public	
+LegacyID	public	
+Location	public	
+MainFuse	public	
+MainFuseOver63A	public	
+MeteringPointEIC	public	
+NumberOfApartments	public	
+NumberOfBuildings	public	
+NumberOfPremises	public	
+Owner	public	
+OwnerDescription	public	
+PostCode	public	
+Power	public	
+ProductionDeviceType	public	
+ProductionPower	public	
+RNro	public	
+SafetyInstructions	public	
+Settlement	public	
+TechPointComments	public	
+TechPointStatement	public	
+UsagePointType	public	
+Voltage	public	
+
+23.	PaymentPlanDto
+Finvoice	public	
+PlanInstalments	public	
+
+24.	PlanInstalmentDto
+Balance	public	
+DueDate	public	
+PaidDate	public	
+Sum	public	
+
+25.	DepositDto
+AltSum	public	
+Date	public	
+Description	public	
+FortumClient	public	
+ID	public	
+MeClientName	public	
+SigneClientName	public	
+Sum	public	
+SumInWords	public	
+
+26.	ProductDto
+DependsOnMeterData	public	
+Parts	public	List of ProductParts
+ProductID	public	
+ProductName	public	
+
+27.	ProductInfoDto
+AnnualConsLimit	public	
+CeilingPrice	public	
+CeilingPriceWithVat	public	
+Comment	public	
+CurrentQuarterEndDate	public	
+CurrentQuarterStartDate	public	
+DurationMonths	public	
+FixedIndefinitelyPrice	public	
+FixedPrice	public	
+FixedQuarterly	public	
+FloorPrice	public	
+FloorPriceWithVat	public	
+Green	public	
+GroupId	public	
+GroupShortTitle	public	
+HourlyPrices	public	
+ID	public	
+IsAnnualFee	public	
+Margin	public	
+MarginWithVat	public	
+MonthlyConsLimit	public	
+MonthlyFee	public	
+MonthlyFeeWithVat	public	
+MonthlyProductFee	public	
+MonthlyProductFeeWithVat	public	
+MonthlyProductName	public	
+Name	public	
+NextQuarterEndDate	public	
+NextQuarterMonthlyFee	public	
+NextQuarterMonthlyFeeWithVat	public	
+NextQuarterPaperBillFee	public	
+NextQuarterPaperBillFeeWithVat	public	
+NextQuarterStartDate	public	
+NextQuarterTariff	public	
+NonHourlyPricesDualTariff	public	null - tunnihinnad, true - kahetariifsed börsi kaalutud keskmised hinnad, false - ühetariifsed börsi kaalutud keskmised hinnad.
+PaperBillFee	public	
+PaperBillFeeWithVat	public	
+PriceLimitValidMonths	public	
+SBonus	public	
+ServiceProductFee	public	
+ServiceProductFeeWithVat	public	
+ServiceProductName	public	
+SkipFirstMonthlyFee	public	
+ZeroMarginMonths	public	
+Tariff	public	
+TariffType	public	
+TypeID	public	
+TypeName	public	
+
+28.	ProductPartDto
+Active	public	
+Coef	public	
+DisplayLabel	public	
+IsTaxClass	public	
+LastReading	public	
+Loss	public	
+Name	public	
+Price	public	
+PriceUnit	public	
+PriceWithVat	public	
+ReaderNumber	public	
+
+29.	ServicePriceListItemDto
+AltPriceWithVat	public	
+Name	public	
+Price	public	
+PriceWithVat	public	
+SubItems	public	
+UnitOfMeasure	public	
+
+30.	TariffDto
+ActivePowerPrice	public	
+ActivePowerPriceWithVat	public	
+BasePrice	public	
+BasePriceWithVat	public	
+DayPrice	public	
+DayPriceWithVat	public	
+DayWinterPrice	public	
+DayWinterPriceWithVat	public	
+EarlyTerminationPrice	public	
+EarlyTerminationPriceWithVat	public	
+EarlyTerminationSum	public	
+EarlyTerminationSumWithVat	public	
+NightPrice	public	
+NightPriceWithVat	public	
+NightWinterPrice	public	
+NightWinterPriceWithVat	public	
+
+31.	ConnectionEndNoticeDto : PostDto
+AffiliationObjects	public	
+Bic	public	
+ByPost	public	
+ContractNumber	public	
+ContractSignedDate	public	
+EndReason	public	
+HasRefund	public	
+Iban	public	
+InvoiceRows	public	
+InvoiceSumWithoutTaxes	public	
+InvoiceTaxes	public	
+Object	public	
+OutputDate	public	
+SignedClientName	public	
+TotalSum	public	
+
+32.	DataContainer
+Address	public	
+Comment	public	
+Contact	public	
+Duration	public	
+Events	public	
+IsEndDifferentFromStartDay	public	
+NetaCode	public	
+ObjectId	public	
+OutageEndDate	public	
+OutageEndTime	public	
+OutageReschedulingEnd	public	
+OutageStartDate	public	
+OutageStartTime	public	
+PostalAddress	public	
+RepairEstimate	public	
+SalesContract	public	
+
+33.	WarningDto
+Address	public	
+ClientID	public	
+ClientName	public	
+ComplaintNumber	public	
+ContractNumber	public	
+Deadline	public	
+DeadlineDays	public	
+Debt	public	
+DisconnectionDate	public	
+EarliestBillOverdueDays	public	
+Headers	public	
+ID	public	
+Invoices	public	
+IsSipooGrid	public	
+LegacyReferenceNumber	public	
+NumberOfDaysTillTurnDown	public	
+ObjectAddress	public	
+OutputDate	public	
+OutputDateLong	public	
+OutputUser	public	
+OverdueCharge	public	
+OwnGrid	public	
+Seller	public	
+SellerBank	public	
+SellerBIC	public	
+SellerCode	public	
+SellerEmail	public	
+SellerIBAN	public	
+SellerPhone	public	
+ShowDisconnectionWarning	public	
+singleObject	private	
+UsagePointID	public	
+UserEmail	public	
+UserOccupation	public	
+UserPhone	public	
+UtilityType	public	
+VirtualBankBarcode	public	
+
+34.	WarningDto.InvoiceDebt
+Debt	public	
+Number	public	
+OutputDate	public	
+PaymentDeadline	public	
+SalesContract	public	
+Sum	public	
+
+35.	WorkOrderDto : PostDto
+Address	public	
+AffiliationMainFuseInfo	public	
+Balance	public	
+BarCode	public	
+ClientPhones	public	
+CompletionTime	public	
+Connected	public	
+CreationDate	public	
+CurrentYear	public	
+Date	public	
+Deadline	public	
+Description	public	
+Disconnected	public	
+MainFuse	public	
+NextYear	public	
+NoticeMessage	public	
+Number	public	
+ObjectID	public	
+Outage	public	
+PlacedReaders	public	
+PlacedSeals	public	
+Products	public	
+Readers	public	
+Readings	public	
+ReadingServicePerformer	public	
+RemovedReaders	public	
+RemovedSeals	public	
+SalesContractID	public	
+SalesContractOwner	public	
+Seals	public	
+SupplyAgreements	public	
+TechpointLocation	public	
+TemplateName	public	
+Type	public	
+Worker	public	
+WorkerIsLegalEntity	public	
+WorkerPhones	public	
+
+36.	WorkOrderDto.SealInfo
+Location	public	
+Number	public	
+PlacementDate	public	
+
+37.	WorkOrderDto.SupplyAgreementBalance
+Balance	public	
+ID	public	

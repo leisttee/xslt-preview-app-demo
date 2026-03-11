@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>XSLT Preview Tool</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<h1>XSLT Preview Tool</h1>
+
+<div class="container">
+
+  <div class="controls">
+    <h2>Syöte</h2>
+
+    <label class="file">
+      <span>XSLT-tiedosto</span>
+      <input type="file" id="xsltFile" accept=".xslt,.xsl,.xml" />
+    </label>
+
+    <label>Dokumenttityyppi</label>
+<select id="docType">
+  <option value="sales">Myyntisopimus (SupplyAgreementDto)</option>
+  <option value="grid">Verkkosopimus (SalesContractDto)</option>
+  <option value="invoice">Lasku (Finvoice)</option>
+  <option value="deposit">Vakuuskuitti (SecurityDepositReceiptDto)</option>
+  <option value="auto">Muu / Auto (XSLT matchista)</option>
+</select>
+
+<label style="margin-top:8px; display:block;">
+  <input type="checkbox" id="lockDocType" checked />
+  Lukitse dokumenttityyppi (älä vaihda automaattisesti)
+</label>
+
+<label style="margin-top:8px; display:block;">
+  Parse/Decode -tila
+</label>
+<select id="decodeMode">
+  <option value="smart">Smart (suositus)</option>
+  <option value="aggressive">Aggressive (jos &lt; / &amp;lt; sekoittuu includeissa)</option>
+  <option value="strict">Strict (älä dekoodaa – vain oikea XML)</option>
+</select>
+
+    <div class="btnrow">
+      <button id="previewBtn" type="button">Näytä preview</button>
+      <button id="clearBtn" class="secondary" type="button">Tyhjennä</button>
+      <button id="pickBaseDirBtn" class="ghost" type="button">Valitse pohjakansio (include/import)</button>
+      <div id="baseDirInfo" class="hint"></div>
+    </div>
+
+    <hr />
+
+      <h3>Testiparametrit</h3>
+      <div class="btnrow">
+  <button id="updateTestDataBtn" class="ghost" type="button">Päivitä testidata</button>
+</div>
+
+<div class="sectionTitle">Template version switches</div>
+
+<!-- Shared -->
+<label><input type="checkbox" id="isBusinessCustomer" /> Business customer (isBusinessCustomer)</label>
+
+<label>Invoice sending method (Lb)</label>
+<select id="invoiceSendingLb">
+  <option value="1">1 = Email</option>
+  <option value="2" selected>2 = Post</option>
+  <option value="5">5 = DirectDebit</option>
+  <option value="9">9 = Bank / e-invoice</option>
+</select>
+
+<!-- Sales (SupplyAgreementDto) -->
+<label><input type="checkbox" id="isProduction" /> Production (ProductionSiteCode not empty)</label>
+<label><input type="checkbox" id="isNpsProduct" checked /> NPS / Spot product (IsNpsProduct=true)</label>
+<label><input type="checkbox" id="isLegalEntity" /> Legal entity (IsLegalEntity=true)</label>
+
+<label><input type="checkbox" id="fixedPrice" /> Fixed price</label>
+<label><input type="checkbox" id="fixedQuarterly" /> Fixed quarterly</label>
+<label><input type="checkbox" id="fixedIndefinitelyPrice" /> Fixed indefinitely</label>
+
+<label><input type="checkbox" id="signedVersion" /> Signed version (SignatureTempFileName set)</label>
+
+<!-- Grid / Contract (SalesContractDto) -->
+<label><input type="checkbox" id="isMicroGeneration" /> Microgeneration (IsMicroGeneration=true)</label>
+
+<label><input type="checkbox" id="hasEndDate" /> Fixed-term (LastDate set)</label>
+
+<div class="param">
+<label>ContractID</label>
+<input id="ContractID" value="123456">
+</div>
+
+<div class="param">
+<label>ProductionSiteCode</label>
+<input id="ProductionSiteCode" value="ES-001">
+</div>
+
+<div class="param">
+<label>Product ID</label>
+<input id="ProductID" value="100">
+</div>
+
+<div class="param">
+<label>Product Name</label>
+<input id="ProductName" value="Esimerkkituote">
+</div>
+
+<div class="param">
+<label>VatRatePercent</label>
+<input id="VatRatePercent" value="24">
+</div>
+
+<div class="param">
+<label>OutputDate</label>
+<input id="OutputDate" value="2026-03-10">
+</div>
+
+<div class="param">
+<label>FirstDate</label>
+<input id="FirstDate" value="2026-04-01">
+</div>
+
+<div class="param">
+<label>PeriodFirstDate</label>
+<input id="PeriodFirstDate" value="2026-04-01">
+</div>
+
+<div class="param">
+<label>LastDate</label>
+<input id="LastDate">
+</div>
+
+<div class="param">
+<label>OwnerClient ID</label>
+<input id="OwnerClientID" value="123456">
+</div>
+
+<div class="param">
+<label>OwnerClient Name</label>
+<input id="OwnerClientName" value="Testaaja Testi">
+</div>
+
+<div class="param">
+<label>Owner Address</label>
+<textarea id="OwnerAddress">Testikatu 1 A
+00100 Helsinki</textarea>
+</div>
+
+<div class="param">
+<label>Owner Code</label>
+<input id="OwnerCode" value="123456-789A">
+</div>
+
+<div class="param">
+<label>GridOperator</label>
+<input id="GridOperator" value="ESIMERKKIVERKKO OY">
+</div>
+
+<div class="param">
+<label>MeteringPointID</label>
+<input id="MeteringPointID" value="123456789012345678">
+</div>
+
+<div class="param">
+<label>MeteringPoint Address</label>
+<textarea id="MeteringPointAddress">Testikäyttöpaikantie 1 A
+00100 Helsinki</textarea>
+</div>
+
+    <hr />
+
+    <h3>Lokit</h3>
+    <div id="log" class="log"></div>
+  </div>
+
+  <div class="previewWrap">
+    <div class="previewTabs">
+      <button class="tab active" data-tab="pdf" type="button">PDF‑look</button>
+      <button class="tab" data-tab="fo" type="button">FO/XML + Editor</button>
+    </div>
+
+    <div id="previewPdf" class="preview pdf"></div>
+
+    <div id="previewFo" class="preview fo" hidden>
+      <div class="editorBar">
+        <button id="runFromEditorBtn" type="button" data-i18n="runFromEditor">Aja editorista</button>
+        <button id="genXmlBtn" class="ghost" type="button" data-i18n="genXml">Luo testidata (rootista)</button>
+        <button id="saveXsltBtn" class="secondary" type="button" data-i18n="saveXslt">Tallenna XSLT…</button>
+        <button id="saveXmlBtn" class="secondary" type="button" data-i18n="saveXml">Tallenna XML…</button>
+        <button id="resetXsltBtn" class="ghost" type="button" data-i18n="reset">Palauta ladattu</button>
+      </div>
+
+      <div id="xsltAnalysis" class="analysis">
+        Detected output: unknown
+      </div>
+
+      <div class="editorGrid">
+        <div class="pane">
+          <div class="paneHead">
+            <h4>XSLT template</h4>
+            <div class="findBar">
+              <input id="findXslt" type="text" placeholder="Hae XSLT:stä…" />
+              <button id="findXsltPrev" type="button" class="ghost">◀</button>
+              <button id="findXsltNext" type="button" class="ghost">▶</button>
+              <label class="miniCheck"><input id="findXsltCase" type="checkbox" />Aa</label>
+            </div>
+          </div>
+          <textarea id="xsltEditor" spellcheck="false"></textarea>
+        </div>
+
+        <div class="pane">
+          <div class="paneHead">
+            <h4>Source XML</h4>
+            <div class="findBar">
+              <input id="findXml" type="text" placeholder="Hae XML:stä…" />
+              <button id="findXmlPrev" type="button" class="ghost">◀</button>
+              <button id="findXmlNext" type="button" class="ghost">▶</button>
+              <label class="miniCheck"><input id="findXmlCase" type="checkbox" />Aa</label>
+            </div>
+          </div>
+          <textarea id="xmlEditor" spellcheck="false"></textarea>
+        </div>
+      </div>
+
+      <h4>FO output (read-only)</h4>
+      <pre id="foOut" class="foOut"></pre>
+    </div>
+
+    
+    <h3>Diagnostiikka</h3>
+    <div id="diag" class="diag"></div>
+
+
+  </div>
+
+</div>
+
+<script src="renders.js" defer></script>
+
+</body>
+</html>
