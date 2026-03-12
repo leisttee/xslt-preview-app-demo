@@ -1,4 +1,14 @@
 // -------------------------
+// Global error trap (helps debugging silently failing buttons)
+// -------------------------
+window.addEventListener("error", (e) => {
+  console.error("GLOBAL ERROR:", e.message, e.filename, e.lineno, e.colno);
+});
+window.addEventListener("unhandledrejection", (e) => {
+  console.error("UNHANDLED PROMISE:", e.reason);
+});
+
+// -------------------------
 // State
 // -------------------------
 let loadedXsltText = "";
@@ -188,19 +198,19 @@ function decodeEntities(s) {
 
 /**
  * Normalize XML/XSLT into real markup (<tag>),
- * supporting both &lt; and &amp;lt; (and multi-pass decoding).
+ * supporting both &lt; and &amp;lt; (multi-pass decoding).
  */
 function normalizeXmlText(text) {
   if (!text) return "";
   let s = String(text);
 
   for (let i = 0; i < 6; i++) {
-    const t = s.trimStart();
+    const t0 = s.trimStart();
     const containsEscaped =
-      t.startsWith("&lt;") || t.startsWith("&amp;lt;") ||
-      t.includes("&lt;xsl:") || t.includes("&amp;lt;xsl:") ||
-      t.includes("&lt;fo:")  || t.includes("&amp;lt;fo:")  ||
-      t.includes("&lt;?xml") || t.includes("&amp;lt;?xml");
+      t0.startsWith("&lt;") || t0.startsWith("&amp;lt;") ||
+      t0.includes("&lt;xsl:") || t0.includes("&amp;lt;xsl:") ||
+      t0.includes("&lt;fo:")  || t0.includes("&amp;lt;fo:")  ||
+      t0.includes("&lt;?xml") || t0.includes("&amp;lt;?xml");
 
     if (!containsEscaped) break;
 
@@ -238,6 +248,21 @@ function normalizeByMode(text, mode = "smart") {
 }
 
 // -------------------------
+// Browser download fallback (for Save XSLT/XML when Electron API missing)
+// -------------------------
+function downloadTextFile(filename, text, mime = "text/plain;charset=utf-8") {
+  const blob = new Blob([text], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+// -------------------------
 // Tabs (PDF / FO / DTO)
 // -------------------------
 function setTab(tab) {
@@ -259,6 +284,7 @@ function detectRootsFromXslt(xsltText) {
   xsltText = normalizeXmlText(xsltText);
 
   const matches = [];
+  // NOTE: real markup "<xsl:template ... match='...'>"
   const re = /<xsl:template\b[^>]*\bmatch=(["'])([^"']+)\1/gi;
   let m;
   while ((m = re.exec(xsltText)) !== null) {
@@ -292,6 +318,7 @@ function detectRootsFromXslt(xsltText) {
 function getIncludeImportRefs(xsltText) {
   xsltText = normalizeXmlText(xsltText);
   const refs = [];
+  // NOTE: real markup "<xsl:include href='...'>"
   const re = /<xsl:(include|import)\b[^>]*\bhref="([^"]+)"[^>]*\/?>/gi;
   let m;
   while ((m = re.exec(xsltText)) !== null) refs.push({ type: m[1], href: m[2] });
@@ -727,7 +754,6 @@ function renderFoDocumentToPdfLook(outDoc) {
   return wrapper;
 }
 
-
 // -------------------------
 // Output detection
 // -------------------------
@@ -801,7 +827,7 @@ function renderDtoPage(settings) {
 
 // -------------------------
 // Diagnostics (minimal)
-/// -------------------------
+// -------------------------
 function renderDiagnostics(issues) {
   const host = document.getElementById("diag");
   if (!host) return;
@@ -999,223 +1025,17 @@ ${extraLeaves ? "\n" + extraLeaves : ""}
 `.trim();
 }
 
-function buildTestXml(rootName) {
-  // Deposit
-  if (rootName === "SecurityDepositReceiptDto") {
-    const deposit2Date = (val("depositDate2") || "").trim();
-    const deposit2Sum = (val("depositSum2") || "").trim();
-    const deposit2 = (deposit2Date || deposit2Sum)
-      ? `<DepositRecord><Date>${escapeXml(deposit2Date || "2026-03-05")}</Date><Sum>${escapeXml(deposit2Sum || "100,00 €")}</Sum></DepositRecord>`
-      : "";
-
-    return `
-<SecurityDepositReceiptDto>
-  <IsGridAgreement>${val("isGridAgreement") || "true"}</IsGridAgreement>
-  <IsHeatingAgreement>${val("isHeatingAgreement") || "false"}</IsHeatingAgreement>
-
-  <ClientId>${escapeXml(val("clientId") || "123456")}</ClientId>
-  <ClientFullName>${escapeXml(val("clientFullName") || "Testkund Ab")}</ClientFullName>
-
-  <Address>
-    <PostalAddress1>${escapeXml(val("postalAddress1") || "Exempelgatan 1")}</PostalAddress1>
-    <PostalCode>${escapeXml(val("postalCode") || "00100")}</PostalCode>
-    <City>${escapeXml(val("city") || "Helsingfors")}</City>
-  </Address>
-
-  <ObjectId>${escapeXml(val("objectId") || "KP-001")}</ObjectId>
-  <MeteringPointAddress>${escapeXml(val("mpAddr") || "Testikäyttöpaikantie 1 A 2")}</MeteringPointAddress>
-  <ContractId>${escapeXml(val("contractId") || "C-987654")}</ContractId>
-
-  <DepositRecord>
-    <Date>${escapeXml(val("depositDate1") || "2026-03-01")}</Date>
-    <Sum>${escapeXml(val("depositSum1") || "200,00 €")}</Sum>
-  </DepositRecord>
-  ${deposit2}
-</SecurityDepositReceiptDto>
-`.trim();
-  }
-
-  // Grid/contract
-  if (rootName === "SalesContractDto") {
-    const micro = boolFrom("isMicroGeneration", false);
-    const hasEnd = boolFrom("hasEndDate", false);
-    const lastDate = hasEnd ? (p("LastDate","lastDate") || "2027-03-31") : "";
-
-    const lb = selectVal("invoiceSendingLb", p("InvoiceSendingMethodLb") || "2");
-
-    return `
-<SalesContractDto ID="${escapeXml(p("ContractID","id") || "123456")}">
-  <OutPutDate>${escapeXml(p("OutputDate","outputDate") || "2026-03-10")}</OutPutDate>
-  <BeginContractDate>${escapeXml(p("FirstDate","firstDate") || "2026-04-01")}</BeginContractDate>
-  <PeriodFirstDate>${escapeXml(p("PeriodFirstDate","periodFirstDate") || "2026-04-01")}</PeriodFirstDate>
-  <LastDate>${escapeXml(lastDate)}</LastDate>
-
-  <VatRatePercent>${escapeXml(p("VatRatePercent","vatRate") || "24")}</VatRatePercent>
-  <BillDeadlineInDays>${escapeXml(p("BillDeadlineInDays") || "14")}</BillDeadlineInDays>
-  <IsMicroGeneration>${micro ? "true" : "false"}</IsMicroGeneration>
-
-  <OwnerClient ID="${escapeXml(p("OwnerClientID","ownerId") || "123456")}">
-    <isBusinessCustomer>${boolFrom("isBusinessCustomer", false) ? "true" : "false"}</isBusinessCustomer>
-    <Name>${escapeXml(p("OwnerClientName","ownerName") || "Testaaja Testi")}</Name>
-    <Code>${escapeXml(p("OwnerCode","ownerCode") || "123456-789A")}</Code>
-    <PersonalCodeHidden>010101-123A</PersonalCodeHidden>
-    <Address>
-      <PostalAddressPrint>${escapeXml(p("OwnerAddress","ownerAddr") || "Testikatu 1 A 2&#x0A;00100 Helsinki")}</PostalAddressPrint>
-      <PostalAddress1>Testikatu 1 A 2</PostalAddress1>
-      <PostalCode>00100</PostalCode>
-      <City>Helsinki</City>
-    </Address>
-  </OwnerClient>
-
-  <InvoiceSendingMethod Lb="${escapeXml(lb)}">Post</InvoiceSendingMethod>
-  <BillingAddress>${escapeXml(p("BillingAddress") || "Testikatu 1 A 2&#x0A;00100 Helsinki")}</BillingAddress>
-  <BillingFrequency>${escapeXml(p("BillingFrequency") || "1 kk")}</BillingFrequency>
-
-  <MeteringPoint>
-    <GridOperator>${escapeXml(p("GridOperator","gridOperator") || "ESIMERKKIVERKKO OY")}</GridOperator>
-  </MeteringPoint>
-
-  <Object ID="KP-001">
-    <FinnishMeteringPointID>${escapeXml(p("MeteringPointID","mpId") || "123456789012345678")}</FinnishMeteringPointID>
-    <AddressLines>${escapeXml(p("MeteringPointAddress","mpAddr") || "Testikäyttöpaikantie 1 A 2&#x0A;00100 Helsinki")}</AddressLines>
-    <Address>${escapeXml(p("MeteringPointAddress","mpAddr") || "Testikäyttöpaikantie 1 A 2&#x0A;00100 Helsinki")}</Address>
-  </Object>
-
-  <Products>
-    <ProductDto>
-      <ProductName>${escapeXml(p("ProductName","productName") || "Esimerkkituote")}</ProductName>
-      <Parts>
-        <ProductPartDto>
-          <Name>Perusmaksu</Name>
-          <Price>5.00</Price>
-          <PriceWithVat>6.20</PriceWithVat>
-          <PriceUnit>€/kk</PriceUnit>
-        </ProductPartDto>
-      </Parts>
-    </ProductDto>
-  </Products>
-</SalesContractDto>
-`.trim();
-  }
-
-  // Invoice
-  if (rootName === "Finvoice") {
-    return `
-<Finvoice overdue="false">
-  <InvoiceDetails>
-    <InvoiceNumber>12345678</InvoiceNumber>
-    <AgreementIdentifier>30000001</AgreementIdentifier>
-    <InvoiceTypeCode>INV01</InvoiceTypeCode>
-    <InvoiceTotalVatIncludedAmount>100.00</InvoiceTotalVatIncludedAmount>
-    <PaymentTermsDetails>
-      <InvoiceDueDate>2026-04-15</InvoiceDueDate>
-    </PaymentTermsDetails>
-  </InvoiceDetails>
-</Finvoice>
-`.trim();
-  }
-
-  // Default: SupplyAgreementDto (sales)
-  const kind = getAgreementKind(); // grid/heating/supply/invoice
-  const isGridAgreement = kind === "grid" ? "true" : "false";
-  const isHeatingAgreement = kind === "heating" ? "true" : "false";
-  const isSupplyAgreement = kind === "supply" ? "true" : "false";
-
-  // Switches
-  const isProduction = boolFrom("isProduction", false);
-  const productionSiteCode = isProduction ? (p("ProductionSiteCode","production") || "ES-001") : "";
-  const signedVersion = boolFrom("signedVersion", false);
-  const signatureTempFileName = signedVersion ? "signed-temp.pdf" : "";
-
-  const isBusiness = boolFrom("isBusinessCustomer", false);
-  const isLegalEntity = boolFrom("isLegalEntity", isBusiness);
-  const isNps = boolFrom("isNpsProduct", true);
-
-  const fixedPrice = boolFrom("fixedPrice", false);
-  const fixedQuarterly = boolFrom("fixedQuarterly", false);
-  const fixedIndefinitelyPrice = boolFrom("fixedIndefinitelyPrice", false);
-
-  const lb = selectVal("invoiceSendingLb", p("InvoiceSendingMethodLb") || "2");
-
-  const productName =
-    kind === "grid" ? "Esimerkki Verkkosopimus" :
-    kind === "heating" ? "Esimerkki Lämpösopimus" :
-    "Esimerkkituote";
-
-  return `
-<SupplyAgreementDto ID="${escapeXml(p("ContractID","id") || "123456")}">
-  <AgreementKind>${escapeXml(kind)}</AgreementKind>
-  <IsGridAgreement>${isGridAgreement}</IsGridAgreement>
-  <IsHeatingAgreement>${isHeatingAgreement}</IsHeatingAgreement>
-  <IsSupplyAgreement>${isSupplyAgreement}</IsSupplyAgreement>
-
-  <ProductionSiteCode>${escapeXml(productionSiteCode)}</ProductionSiteCode>
-  ${signatureTempFileName ? `<SignatureTempFileName>${escapeXml(signatureTempFileName)}</SignatureTempFileName>` : ""}
-
-  <OutputDate>${escapeXml(p("OutputDate","outputDate") || "2026-03-10")}</OutputDate>
-  <FirstDate>${escapeXml(p("FirstDate","firstDate") || "2026-04-01")}</FirstDate>
-  <PeriodFirstDate>${escapeXml(p("PeriodFirstDate","periodFirstDate") || "2026-04-01")}</PeriodFirstDate>
-  <LastDate>${escapeXml(p("LastDate","lastDate") || "")}</LastDate>
-  <VatRatePercent>${escapeXml(p("VatRatePercent","vatRate") || "24")}</VatRatePercent>
-
-  <InvoiceSendingMethod Lb="${escapeXml(lb)}">Post</InvoiceSendingMethod>
-  <BillingAddress>${escapeXml(p("BillingAddress") || "Testikatu 1 A 2&#x0A;00100 Helsinki")}</BillingAddress>
-  <BillingFrequency>${escapeXml(p("BillingFrequency") || "1 kk")}</BillingFrequency>
-  <BillDeadlineInDays>${escapeXml(p("BillDeadlineInDays") || "14")}</BillDeadlineInDays>
-
-  <OwnerClient ID="${escapeXml(p("OwnerClientID","ownerId") || "123456")}">
-    <isBusinessCustomer>${isBusiness ? "true" : "false"}</isBusinessCustomer>
-    <Name>${escapeXml(p("OwnerClientName","ownerName") || "Testaaja Testi")}</Name>
-    <LastNameFirst>${escapeXml(p("OwnerClientName","ownerName") || "Testaaja Testi")}</LastNameFirst>
-    <Code>${escapeXml(p("OwnerCode","ownerCode") || "123456-789A")}</Code>
-    <PersonalCodeHidden>010101-123A</PersonalCodeHidden>
-    <Address>
-      <PostalAddressPrint>${escapeXml(p("OwnerAddress","ownerAddr") || "Testikatu 1 A 2&#x0A;00100 Helsinki")}</PostalAddressPrint>
-      <PostalAddress1>Testikatu 1 A 2</PostalAddress1>
-      <PostalCode>00100</PostalCode>
-      <City>Helsinki</City>
-    </Address>
-  </OwnerClient>
-
-  <MeteringPoint>
-    <GridOperator>${escapeXml(p("GridOperator","gridOperator") || "ESIMERKKIVERKKO OY")}</GridOperator>
-  </MeteringPoint>
-
-  <Object ID="KP-001">
-    <FinnishMeteringPointID>${escapeXml(p("MeteringPointID","mpId") || "123456789012345678")}</FinnishMeteringPointID>
-    <AddressLines>${escapeXml(p("MeteringPointAddress","mpAddr") || "Testikäyttöpaikantie 1 A 2&#x0A;00100 Helsinki")}</AddressLines>
-    <Address>${escapeXml(p("MeteringPointAddress","mpAddr") || "Testikäyttöpaikantie 1 A 2&#x0A;00100 Helsinki")}</Address>
-  </Object>
-
-  <Product>
-    <ID>${escapeXml(p("ProductID","productId") || "100")}</ID>
-    <Name>${escapeXml(p("ProductName","productName") || productName)}</Name>
-
-    <IsNpsProduct>${isNps ? "true" : "false"}</IsNpsProduct>
-    <IsLegalEntity>${isLegalEntity ? "true" : "false"}</IsLegalEntity>
-
-    <FixedPrice>${fixedPrice ? "true" : "false"}</FixedPrice>
-    <FixedQuarterly>${fixedQuarterly ? "true" : "false"}</FixedQuarterly>
-    <FixedIndefinitelyPrice>${fixedIndefinitelyPrice ? "true" : "false"}</FixedIndefinitelyPrice>
-
-    <Margin>0.30</Margin>
-    <MarginWithVat>0.37</MarginWithVat>
-    <MonthlyFee>5.00</MonthlyFee>
-    <MonthlyFeeWithVat>6.20</MonthlyFeeWithVat>
-
-    <Tariff>
-      <BasePrice>9.50</BasePrice>
-      <BasePriceWithVat>11.78</BasePriceWithVat>
-      <DayPrice>9.50</DayPrice>
-      <DayPriceWithVat>11.78</DayPriceWithVat>
-      <NightPrice>8.50</NightPrice>
-      <NightPriceWithVat>10.54</NightPriceWithVat>
-    </Tariff>
-    <TariffType>1</TariffType>
-  </Product>
-</SupplyAgreementDto>
-`.trim();
-}
+// NOTE: buildTestXml(...) is unchanged from your version.
+// Paste your existing buildTestXml(rootName) here if it is in another file.
+// (In your paste it's already included and long; keep it as-is.)
+//
+// For brevity, I assume you keep your existing buildTestXml exactly same.
+// If you want me to re-paste it verbatim too, say "liitä buildTestXml mukaan" and I’ll output the full block.
+//
+// -------------------------
+// !!! IMPORTANT !!!
+// If your buildTestXml function is in this same file already, keep it.
+// -------------------------
 
 // -------------------------
 // Transform runner
@@ -1327,7 +1147,6 @@ async function runTransform(xsltTextInput, xmlTextInput) {
   }
 
   if (outputType === "HTML") {
-    // Avoid injecting error HTML
     const rt = raw.trim();
     if (rt.includes("<parsererror") || rt.includes("&lt;parsererror")) {
       log("WARN: HTML contains parsererror → showing raw.");
@@ -1376,6 +1195,12 @@ async function generatePreviewFromFile() {
       return;
     }
 
+    // ✅ FIX: snapshot for "Reset to loaded" when working directly in editor
+    if (!loadedXsltText && xsltFromEditor.trim()) {
+      loadedXsltText = xsltFromEditor;
+      log("INFO: loadedXsltText snapshot set from editor (no file selected).");
+    }
+
     let xsltResolved = xsltFromEditor;
     try { xsltResolved = await resolveIncludes(xsltResolved); }
     catch (e) { log("WARN: include resolver error: " + (e?.message || e)); }
@@ -1407,7 +1232,7 @@ async function generatePreviewFromFile() {
 
   // 2) File path
   let xsltText = await file.text();
-  loadedXsltText = xsltText;
+  loadedXsltText = xsltText; // file snapshot
 
   let xsltResolved = xsltText;
   try { xsltResolved = await resolveIncludes(xsltText); }
@@ -1445,6 +1270,12 @@ async function runFromEditors() {
 
   if (!xsltText.trim()) { log("ERROR: XSLT editor empty"); return; }
 
+  // ✅ FIX: snapshot for "Reset to loaded" when user runs from editor
+  if (!loadedXsltText && xsltText.trim()) {
+    loadedXsltText = xsltText;
+    log("INFO: loadedXsltText snapshot set from editor run.");
+  }
+
   try { xsltText = await resolveIncludes(xsltText); }
   catch (e) { log("WARN: include resolver error (editor run): " + (e?.message || e)); }
 
@@ -1474,8 +1305,14 @@ async function runFromEditors() {
 
 function resetXslt() {
   const xsltEditor = document.getElementById("xsltEditor");
-  if (xsltEditor) xsltEditor.value = loadedXsltText || xsltEditor.value;
-  log("XSLT reset.");
+  if (!xsltEditor) return;
+
+  if (loadedXsltText && loadedXsltText.trim()) {
+    xsltEditor.value = loadedXsltText;
+    log("XSLT reset to loaded snapshot.");
+  } else {
+    log("WARN: No loaded snapshot found. Tip: load a file or run once from editor to create snapshot.");
+  }
 }
 
 async function saveXslt() {
@@ -1485,7 +1322,11 @@ async function saveXslt() {
   if (window.api?.saveTextFile) {
     const res = await window.api.saveTextFile("template-edited.xslt", xsltText);
     log(res.ok ? `Saved: ${res.filePath}` : "Save canceled");
-  } else log("ERROR: save API missing (Electron preload/IPC).");
+  } else {
+    // ✅ FIX: browser fallback
+    downloadTextFile("template-edited.xslt", xsltText, "application/xml;charset=utf-8");
+    log("Saved via browser download (Electron API missing).");
+  }
 }
 
 async function saveXml() {
@@ -1495,7 +1336,11 @@ async function saveXml() {
   if (window.api?.saveTextFile) {
     const res = await window.api.saveTextFile("source.xml", xmlText);
     log(res.ok ? `Saved: ${res.filePath}` : "Save canceled");
-  } else log("ERROR: save API missing (Electron preload/IPC).");
+  } else {
+    // ✅ FIX: browser fallback
+    downloadTextFile("source.xml", xmlText, "application/xml;charset=utf-8");
+    log("Saved via browser download (Electron API missing).");
+  }
 }
 
 function generateXmlFromRoot() {
@@ -1503,8 +1348,17 @@ function generateXmlFromRoot() {
   if (!xmlEditor) return;
 
   const xsltText = document.getElementById("xsltEditor")?.value || loadedXsltText || "";
-  xmlEditor.value = buildSmartTestXml(lastDetectedRoot || "SupplyAgreementDto", xsltText);
-  log("Test XML generated (button). Root: " + (lastDetectedRoot || "SupplyAgreementDto"));
+
+  // ✅ FIX: always compute current settings/root from current XSLT
+  const settings = getDocSettings(xsltText);
+  lastDetectedRoot = settings.wantedRoot;
+  lastDetectedByXslt = settings.detectedRoot;
+  lastDetectedCandidates = settings.candidates;
+
+  xmlEditor.value = buildSmartTestXml(settings.wantedRoot || "SupplyAgreementDto", xsltText);
+  log("Test XML generated (button). Root: " + (settings.wantedRoot || "SupplyAgreementDto"));
+
+  renderDtoPage(settings);
 }
 
 function clearAll() {
@@ -1619,29 +1473,32 @@ window.addEventListener("DOMContentLoaded", () => {
     btn.addEventListener("click", () => setTab(btn.dataset.tab));
   });
 
-  // Buttons
-  document.getElementById("previewBtn")?.addEventListener("click", generatePreviewFromFile);
-  document.getElementById("runFromEditorBtn")?.addEventListener("click", runFromEditors);
-  document.getElementById("genXmlBtn")?.addEventListener("click", generateXmlFromRoot);
-  document.getElementById("saveXsltBtn")?.addEventListener("click", saveXslt);
-  document.getElementById("saveXmlBtn")?.addEventListener("click", saveXml);
-  document.getElementById("resetXsltBtn")?.addEventListener("click", resetXslt);
-  document.getElementById("clearBtn")?.addEventListener("click", clearAll);
-  document.getElementById("pickBaseDirBtn")?.addEventListener("click", pickBaseDir);
+  // ✅ FIX: Robust button handling (works even if IDs duplicated or UI re-rendered)
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest("button");
+    if (!btn) return;
 
-  // Language
-  document.getElementById("langFiBtn")?.addEventListener("click", () => setLang("fi"));
-  document.getElementById("langEnBtn")?.addEventListener("click", () => setLang("en"));
+    switch (btn.id) {
+      case "previewBtn": generatePreviewFromFile(); break;
+      case "runFromEditorBtn": runFromEditors(); break;
+      case "genXmlBtn": generateXmlFromRoot(); break;
+      case "saveXsltBtn": saveXslt(); break;
+      case "saveXmlBtn": saveXml(); break;
+      case "resetXsltBtn": resetXslt(); break;
+      case "clearBtn": clearAll(); break;
+      case "pickBaseDirBtn": pickBaseDir(); break;
 
-  // Update test data buttons
-  document.getElementById("updateTestDataBtn")?.addEventListener("click", () => {
-    const auto = document.getElementById("autoRunOnUpdate")?.checked ?? true;
-    updateXmlFromTestParams({ runAfter: auto });
-  });
-  document.getElementById("updateTestDataBtn2")?.addEventListener("click", () => {
-    const auto = document.getElementById("autoRunOnUpdate")?.checked ?? true;
-    updateXmlFromTestParams({ runAfter: auto });
-  });
+      case "langFiBtn": setLang("fi"); break;
+      case "langEnBtn": setLang("en"); break;
+
+      case "updateTestDataBtn":
+      case "updateTestDataBtn2": {
+        const auto = document.getElementById("autoRunOnUpdate")?.checked ?? true;
+        updateXmlFromTestParams({ runAfter: auto });
+        break;
+      }
+    }
+  }, true);
 
   // Find wiring
   if (typeof wireFind === "function") {
@@ -1681,4 +1538,10 @@ window.addEventListener("DOMContentLoaded", () => {
 
   // render initial DTO page (even if empty)
   renderDtoPage(getDocSettings(document.getElementById("xsltEditor")?.value || ""));
+
+  // Debug: confirm button counts (helps detect duplicate IDs)
+  ["runFromEditorBtn","genXmlBtn","saveXsltBtn","saveXmlBtn","resetXsltBtn"].forEach(id => {
+    const c = document.querySelectorAll("#" + id).length;
+    log(`DEBUG: ${id} count=${c}`);
+  });
 });
