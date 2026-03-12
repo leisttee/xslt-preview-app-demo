@@ -3,240 +3,381 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>XSLT Preview Tool</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>XSLT Preview Demo (24h)</title>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --panel:#101a2c;
+      --panel2:#0f172a;
+      --text:#e5e7eb;
+      --muted:#94a3b8;
+      --line:rgba(255,255,255,.10);
+      --btn:#2563eb;
+      --btn2:#334155;
+      --ghost:rgba(255,255,255,.08);
+      --ok:#22c55e;
+      --warn:#f59e0b;
+      --err:#ef4444;
+      --shadow: 0 18px 60px rgba(0,0,0,.40);
+      --radius:18px;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: system-ui, Segoe UI, Arial, sans-serif;
+      background: radial-gradient(1200px 600px at 15% 0%, rgba(37,99,235,.25), transparent 55%),
+                  radial-gradient(1200px 600px at 85% 0%, rgba(99,102,241,.20), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+    }
+    header{
+      padding:18px 18px 10px;
+      display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
+    }
+    h1{
+      margin:0;
+      font-size:20px;
+      letter-spacing:.2px;
+    }
+    .sub{
+      margin-top:6px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.3;
+    }
+    .badge{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 10px;
+      border:1px solid var(--line);
+      border-radius:999px;
+      background:rgba(255,255,255,.04);
+      color:var(--muted);
+      font-size:12px;
+      user-select:none;
+    }
+    .dot{ width:8px; height:8px; border-radius:50%; background:var(--ok); box-shadow:0 0 0 4px rgba(34,197,94,.15); }
+    .dot.warn{ background:var(--warn); box-shadow:0 0 0 4px rgba(245,158,11,.15); }
+    .dot.err{ background:var(--err); box-shadow:0 0 0 4px rgba(239,68,68,.15); }
+
+    .container{
+      padding:0 18px 18px;
+      display:grid;
+      grid-template-columns: 360px 1fr;
+      gap:14px;
+      align-items:start;
+    }
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .card .head{
+      padding:14px 14px 10px;
+      border-bottom:1px solid var(--line);
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+    }
+    .card .head h2{
+      margin:0;
+      font-size:14px;
+      color:#dbeafe;
+      letter-spacing:.2px;
+    }
+    .card .body{ padding:14px; }
+
+    label{ display:block; margin:10px 0 6px; font-size:12px; color:var(--muted); }
+    select, input[type="text"]{
+      width:100%;
+      padding:10px 10px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background: rgba(15,23,42,.55);
+      color:var(--text);
+      outline:none;
+    }
+    .row{ display:flex; gap:10px; }
+    .row > * { flex:1; }
+
+    button{
+      appearance:none;
+      border:1px solid transparent;
+      background: var(--btn);
+      color:white;
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      font-weight:600;
+      transition: transform .04s ease, filter .12s ease, background .12s ease;
+      user-select:none;
+    }
+    button:active{ transform: translateY(1px); }
+    button.secondary{ background: var(--btn2); }
+    button.ghost{ background: var(--ghost); border-color:var(--line); color:var(--text); }
+    button:disabled{ opacity:.5; cursor:not-allowed; transform:none; }
+
+    .btnrow{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:12px;
+    }
+
+    .muted{ color:var(--muted); font-size:12px; }
+    .divider{ height:1px; background:var(--line); margin:14px 0; }
+
+    .tabs{
+      display:flex; gap:8px; padding:12px; border-bottom:1px solid var(--line);
+      background: rgba(0,0,0,.10);
+    }
+    .tab{
+      background: rgba(255,255,255,.06);
+      border:1px solid var(--line);
+      color:var(--text);
+      padding:8px 10px;
+      border-radius:999px;
+      font-weight:700;
+      font-size:12px;
+    }
+    .tab.active{ background: rgba(37,99,235,.28); border-color: rgba(37,99,235,.55); }
+
+    .preview{
+      padding:12px;
+      min-height: 520px;
+      overflow:auto;
+    }
+    .sheet{
+      background:white;
+      color:#111827;
+      border-radius:12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.22);
+      padding:18px 16px;
+    }
+    .header, .footer{ color:#111827; }
+    .content{ color:#111827; }
+
+    .editorBar{
+      display:flex; flex-wrap:wrap; gap:8px;
+      margin-bottom:10px;
+    }
+    .analysis{
+      margin:10px 0;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px dashed var(--line);
+      color:var(--muted);
+      background: rgba(15,23,42,.35);
+      font-size:12px;
+    }
+    .editorGrid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:12px;
+      margin-top:10px;
+    }
+    .pane{
+      border:1px solid var(--line);
+      border-radius:14px;
+      overflow:hidden;
+      background: rgba(15,23,42,.35);
+    }
+    .paneHead{
+      padding:10px 12px;
+      border-bottom:1px solid var(--line);
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+    }
+    .paneHead h4{ margin:0; font-size:12px; color:#dbeafe; }
+    textarea{
+      width:100%;
+      min-height: 240px;
+      border:0;
+      outline:none;
+      padding:12px;
+      background: rgba(0,0,0,.18);
+      color: var(--text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size:12px;
+      line-height:1.4;
+      resize:vertical;
+    }
+    pre{
+      margin:0;
+      white-space:pre-wrap;
+      word-break:break-word;
+      padding:12px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background: rgba(0,0,0,.20);
+      color: var(--text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size:12px;
+      line-height:1.35;
+    }
+    .log{
+      height:220px;
+      overflow:auto;
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background: rgba(0,0,0,.18);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size:12px;
+      color:#cbd5e1;
+    }
+    .diagItem{
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:10px 12px;
+      margin:10px 0;
+      background: rgba(0,0,0,.16);
+    }
+    .diagItem .meta{ color:var(--muted); font-size:12px; margin:4px 0 6px; }
+    .diagItem.error{ border-color: rgba(239,68,68,.45); }
+    .diagItem.warn{ border-color: rgba(245,158,11,.45); }
+    .diagItem.info{ border-color: rgba(34,197,94,.35); }
+
+    /* Demo lock overlay */
+    #demoLockOverlay{
+      position:fixed; inset:0; z-index:99999;
+      background: rgba(0,0,0,.72);
+      display:none;
+      align-items:center; justify-content:center;
+      padding:24px;
+    }
+    #demoLockOverlay .box{
+      max-width:680px;
+      background: rgba(17,24,39,.92);
+      border:1px solid rgba(255,255,255,.14);
+      border-radius: 18px;
+      padding:20px 22px;
+      box-shadow: 0 28px 80px rgba(0,0,0,.50);
+      text-align:center;
+    }
+    #demoLockOverlay h2{ margin:0 0 8px; font-size:22px; }
+    #demoLockOverlay p{ margin:6px 0; color: rgba(255,255,255,.84); }
+    #demoLockOverlay .small{ color: rgba(255,255,255,.70); font-size:12px; margin-top:10px; }
+  </style>
 </head>
 <body>
 
-<h1>XSLT Preview Tool</h1>
+<header>
+  <div>
+    <h1>XSLT Preview Demo</h1>
+    <div class="sub">
+      Demo sisältää valmiit esimerkit (FO / TEXT / HTML), eikä salli tiedostojen lisäämistä.
+      <br/>Aikaraja: <b>24 h</b> ensimmäisestä käynnistyksestä → vanhentuessa <b>kova lukko</b>.
+    </div>
+  </div>
+
+  <div class="badge" id="demoBadge">
+    <span class="dot" id="demoDot"></span>
+    <span id="demoStatus">Demo mode • time left: ...</span>
+  </div>
+</header>
 
 <div class="container">
 
-  <div class="controls">
-    <h2>Syöte</h2>
+  <!-- Left: controls -->
+  <div class="card">
+    <div class="body">
 
-    <label class="file">
-      <span>XSLT-tiedosto</span>
-      <input type="file" id="xsltFile" accept=".xslt,.xsl,.xml" />
-    </label>
+      <label>Valitse esimerkki</label>
+      <select id="demoPreset"></select>
 
-    <label>Dokumenttityyppi</label>
-<select id="docType">
-  <option value="sales">Myyntisopimus (SupplyAgreementDto)</option>
-  <option value="grid">Verkkosopimus (SalesContractDto)</option>
-  <option value="invoice">Lasku (Finvoice)</option>
-  <option value="deposit">Vakuuskuitti (SecurityDepositReceiptDto)</option>
-  <option value="auto">Muu / Auto (XSLT matchista)</option>
-</select>
-
-<label style="margin-top:8px; display:block;">
-  <input type="checkbox" id="lockDocType" checked />
-  Lukitse dokumenttityyppi (älä vaihda automaattisesti)
-</label>
-
-<label style="margin-top:8px; display:block;">
-  Parse/Decode -tila
-</label>
-<select id="decodeMode">
-  <option value="smart">Smart (suositus)</option>
-  <option value="aggressive">Aggressive (jos &lt; / &amp;lt; sekoittuu includeissa)</option>
-  <option value="strict">Strict (älä dekoodaa – vain oikea XML)</option>
-</select>
-
-    <div class="btnrow">
-      <button id="previewBtn" type="button">Näytä preview</button>
-      <button id="clearBtn" class="secondary" type="button">Tyhjennä</button>
-      <button id="pickBaseDirBtn" class="ghost" type="button">Valitse pohjakansio (include/import)</button>
-      <div id="baseDirInfo" class="hint"></div>
-    </div>
-
-    <hr />
-
-      <h3>Testiparametrit</h3>
       <div class="btnrow">
-  <button id="updateTestDataBtn" class="ghost" type="button">Päivitä testidata</button>
-</div>
+        <button id="loadDemoPresetBtn" type="button">Load example</button>
+        <button id="runFromEditorBtn" class="secondary" type="button">Run</button>
+        <button id="genXmlBtn" class="ghost" type="button">Generate XML</button>
+      </div>
 
-<div class="sectionTitle">Template version switches</div>
+      <div class="divider"></div>
 
-<!-- Shared -->
-<label><input type="checkbox" id="isBusinessCustomer" /> Business customer (isBusinessCustomer)</label>
+      <label>Dokumenttityyppi</label>
+      <select id="docType">
+        <option value="sales">Myyntisopimus (SupplyAgreementDto)</option>
+        <option value="invoice">Lasku (Finvoice)</option>
+        <option value="auto">Muu / Auto (XSLT matchista)</option>
+      </select>
 
-<label>Invoice sending method (Lb)</label>
-<select id="invoiceSendingLb">
-  <option value="1">1 = Email</option>
-  <option value="2" selected>2 = Post</option>
-  <option value="5">5 = DirectDebit</option>
-  <option value="9">9 = Bank / e-invoice</option>
-</select>
+      <label style="display:flex;gap:10px;align-items:center;">
+        <input type="checkbox" id="lockDocType" checked />
+        <span>Lukitse dokumenttityyppi</span>
+      </label>
 
-<!-- Sales (SupplyAgreementDto) -->
-<label><input type="checkbox" id="isProduction" /> Production (ProductionSiteCode not empty)</label>
-<label><input type="checkbox" id="isNpsProduct" checked /> NPS / Spot product (IsNpsProduct=true)</label>
-<label><input type="checkbox" id="isLegalEntity" /> Legal entity (IsLegalEntity=true)</label>
+      <label>Parse/Decode</label>
+      <select id="decodeMode">
+        <option value="smart">Smart (suositus)</option>
+        <option value="aggressive">Aggressive (jos &lt; / &amp;lt; sekoittuu)</option>
+        <option value="strict">Strict (vain oikea XML)</option>
+      </select>
 
-<label><input type="checkbox" id="fixedPrice" /> Fixed price</label>
-<label><input type="checkbox" id="fixedQuarterly" /> Fixed quarterly</label>
-<label><input type="checkbox" id="fixedIndefinitelyPrice" /> Fixed indefinitely</label>
+      <div class="btnrow">
+        <button id="resetXsltBtn" class="ghost" type="button">Reset to loaded</button>
+        <button id="saveXsltBtn" class="secondary" type="button">Download XSLT</button>
+        <button id="saveXmlBtn" class="secondary" type="button">Download XML</button>
+      </div>
 
-<label><input type="checkbox" id="signedVersion" /> Signed version (SignatureTempFileName set)</label>
+      <div class="divider"></div>
 
-<!-- Grid / Contract (SalesContractDto) -->
-<label><input type="checkbox" id="isMicroGeneration" /> Microgeneration (IsMicroGeneration=true)</label>
+      <label>Lokit</label>
+      <div id="log" class="log"></div>
 
-<label><input type="checkbox" id="hasEndDate" /> Fixed-term (LastDate set)</label>
-
-<div class="param">
-<label>ContractID</label>
-<input id="ContractID" value="123456">
-</div>
-
-<div class="param">
-<label>ProductionSiteCode</label>
-<input id="ProductionSiteCode" value="ES-001">
-</div>
-
-<div class="param">
-<label>Product ID</label>
-<input id="ProductID" value="100">
-</div>
-
-<div class="param">
-<label>Product Name</label>
-<input id="ProductName" value="Esimerkkituote">
-</div>
-
-<div class="param">
-<label>VatRatePercent</label>
-<input id="VatRatePercent" value="24">
-</div>
-
-<div class="param">
-<label>OutputDate</label>
-<input id="OutputDate" value="2026-03-10">
-</div>
-
-<div class="param">
-<label>FirstDate</label>
-<input id="FirstDate" value="2026-04-01">
-</div>
-
-<div class="param">
-<label>PeriodFirstDate</label>
-<input id="PeriodFirstDate" value="2026-04-01">
-</div>
-
-<div class="param">
-<label>LastDate</label>
-<input id="LastDate">
-</div>
-
-<div class="param">
-<label>OwnerClient ID</label>
-<input id="OwnerClientID" value="123456">
-</div>
-
-<div class="param">
-<label>OwnerClient Name</label>
-<input id="OwnerClientName" value="Testaaja Testi">
-</div>
-
-<div class="param">
-<label>Owner Address</label>
-<textarea id="OwnerAddress">Testikatu 1 A
-00100 Helsinki</textarea>
-</div>
-
-<div class="param">
-<label>Owner Code</label>
-<input id="OwnerCode" value="123456-789A">
-</div>
-
-<div class="param">
-<label>GridOperator</label>
-<input id="GridOperator" value="ESIMERKKIVERKKO OY">
-</div>
-
-<div class="param">
-<label>MeteringPointID</label>
-<input id="MeteringPointID" value="123456789012345678">
-</div>
-
-<div class="param">
-<label>MeteringPoint Address</label>
-<textarea id="MeteringPointAddress">Testikäyttöpaikantie 1 A
-00100 Helsinki</textarea>
-</div>
-
-    <hr />
-
-    <h3>Lokit</h3>
-    <div id="log" class="log"></div>
+      <div class="muted" style="margin-top:10px;">
+        Demo folder: <b>C:\xslt-preview-demo</b>
+      </div>
+    </div>
   </div>
 
-  <div class="previewWrap">
-    <div class="previewTabs">
+  <!-- Right: preview -->
+  <div class="card">
+    <div class="tabs">
       <button class="tab active" data-tab="pdf" type="button">PDF‑look</button>
-      <button class="tab" data-tab="fo" type="button">FO/XML + Editor</button>
+      <button class="tab" data-tab="fo" type="button">Output + Editors</button>
+      <button class="tab" data-tab="dto" type="button">DTO Info</button>
     </div>
 
-    <div id="previewPdf" class="preview pdf"></div>
+    <div id="previewPdf" class="preview"></div>
 
-    <div id="previewFo" class="preview fo" hidden>
-      <div class="editorBar">
-        <button id="runFromEditorBtn" type="button" data-i18n="runFromEditor">Aja editorista</button>
-        <button id="genXmlBtn" class="ghost" type="button" data-i18n="genXml">Luo testidata (rootista)</button>
-        <button id="saveXsltBtn" class="secondary" type="button" data-i18n="saveXslt">Tallenna XSLT…</button>
-        <button id="saveXmlBtn" class="secondary" type="button" data-i18n="saveXml">Tallenna XML…</button>
-        <button id="resetXsltBtn" class="ghost" type="button" data-i18n="reset">Palauta ladattu</button>
-      </div>
-
-      <div id="xsltAnalysis" class="analysis">
-        Detected output: unknown
-      </div>
+    <div id="previewFo" class="preview" hidden>
+      <div class="analysis" id="xsltAnalysis">Detected output: unknown</div>
 
       <div class="editorGrid">
         <div class="pane">
-          <div class="paneHead">
-            <h4>XSLT template</h4>
-            <div class="findBar">
-              <input id="findXslt" type="text" placeholder="Hae XSLT:stä…" />
-              <button id="findXsltPrev" type="button" class="ghost">◀</button>
-              <button id="findXsltNext" type="button" class="ghost">▶</button>
-              <label class="miniCheck"><input id="findXsltCase" type="checkbox" />Aa</label>
-            </div>
-          </div>
+          <div class="paneHead"><h4>XSLT template</h4></div>
           <textarea id="xsltEditor" spellcheck="false"></textarea>
         </div>
-
         <div class="pane">
-          <div class="paneHead">
-            <h4>Source XML</h4>
-            <div class="findBar">
-              <input id="findXml" type="text" placeholder="Hae XML:stä…" />
-              <button id="findXmlPrev" type="button" class="ghost">◀</button>
-              <button id="findXmlNext" type="button" class="ghost">▶</button>
-              <label class="miniCheck"><input id="findXmlCase" type="checkbox" />Aa</label>
-            </div>
-          </div>
+          <div class="paneHead"><h4>Source XML</h4></div>
           <textarea id="xmlEditor" spellcheck="false"></textarea>
         </div>
       </div>
 
-      <h4>FO output (read-only)</h4>
-      <pre id="foOut" class="foOut"></pre>
+      <div style="margin-top:12px;">
+        <h4 style="margin:10px 0 8px;color:#dbeafe;font-size:12px;">Raw output (read-only)</h4>
+        <pre id="foOut"></pre>
+      </div>
+
+      <div style="margin-top:14px;">
+        <h4 style="margin:10px 0 8px;color:#dbeafe;font-size:12px;">Diagnostiikka</h4>
+        <div id="diag"></div>
+      </div>
     </div>
 
-    
-    <h3>Diagnostiikka</h3>
-    <div id="diag" class="diag"></div>
-
+    <div id="previewDto" class="preview" hidden></div>
 
   </div>
-
 </div>
 
-<script src="renders.js" defer></script>
+<!-- Hard lock overlay -->
+<div id="demoLockOverlay">
+  <div class="box">
+    <h2>Demo expired</h2>
+    <p>This demo build is no longer active (24h limit reached).</p>
+    <p>Please request a new demo build.</p>
+    <div class="small">Tip: You can reset by clearing site storage, but this demo is intentionally time-limited.</div>
+  </div>
+</div>
 
+<script src="demo.js" defer></script>
 </body>
 </html>

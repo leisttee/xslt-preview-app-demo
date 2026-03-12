@@ -244,6 +244,42 @@ hr{
   background: rgba(239, 68, 68, 0.08);
 }
 
+:root{ color-scheme: light; }
+/* ...light muuttujat kuten yllä... */
+
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg: #0b1220;
+  --text: #e5e7eb;
+  --card: #0f172a;
+  --cardText: #e5e7eb;
+  --mutedText: rgba(229,231,235,.70);
+  --border: rgba(255,255,255,.14);
+  --borderSoft: rgba(255,255,255,.10);
+  --shadow: 0 10px 24px rgba(0,0,0,.45);
+  --primary: #4aa3ff;
+  --primaryHover: #2f8cf3;
+  --secondary: #64748b;
+  --secondaryHover: #94a3b8;
+  --ghostBg: rgba(226,232,240,.10);
+  --ghostText: #e5e7eb;
+  --ghostHover: rgba(226,232,240,.18);
+  --hr: rgba(255,255,255,.10);
+  --logBg: #050b16;
+  --logText: #34d399;
+  --previewBg: #0f172a;
+  --previewPdfBg: #0b1220;
+  --sheetBg: #ffffff;
+  --sheetShadow: 0 12px 40px rgba(0,0,0,.55);
+  --inputBg: #0b1220;
+  --inputText: #e5e7eb;
+  --inputBorder: rgba(255,255,255,.16);
+  --focusRing: 0 0 0 3px rgba(74,163,255,.22);
+  --editorOutBg: #050b16;
+  --editorOutText: #b7ffda;
+}
+
+
 
 .diag { display:grid; gap:10px; margin:10px 0; }
 .diagItem{ border:1px solid rgba(0,0,0,.12); border-radius:12px; padding:10px; background:#fff; }
