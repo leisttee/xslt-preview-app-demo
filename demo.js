@@ -56,10 +56,6 @@ function updateDemoBadge() {
   }
 }
 
-// Prevent drag&drop file usage (demo requirement)
-document.addEventListener("dragover", e => e.preventDefault(), true);
-document.addEventListener("drop", e => e.preventDefault(), true);
-
 // -------------------------
 // Global error trap
 // -------------------------
@@ -74,6 +70,9 @@ window.addEventListener("unhandledrejection", (e) => {
 // State
 // -------------------------
 let loadedXsltText = "";
+let loadedXmlText = "";
+let loadedFileLabels = { xslt: "", xml: "" };
+
 let lastDetectedRoot = "SupplyAgreementDto";
 let lastDetectedCandidates = [];
 let lastDetectedByXslt = "";
@@ -136,13 +135,15 @@ function serializeNodeSafe(node) {
 
 function prettyXml(xml) {
   if (!xml) return "";
+  // Insert line breaks between tags
   xml = xml.replace(/(>)(<)(\/*)/g, "$1\n$2$3");
   let pad = 0;
   return xml.split("\n").map(line => {
-    if (/^<\/\w/.test(line)) pad = Math.max(pad - 1, 0);
+    const trimmed = line.trim();
+    if (/^<\/\w/.test(trimmed)) pad = Math.max(pad - 1, 0);
     const indent = "  ".repeat(pad);
-    if (/^<\w[^>]*[^\/]>.*$/.test(line) && !line.includes("</")) pad += 1;
-    return indent + line;
+    if (/^<\w[^>]*[^\/]>.*$/.test(trimmed) && !trimmed.includes("</")) pad += 1;
+    return indent + trimmed;
   }).join("\n");
 }
 
@@ -155,18 +156,20 @@ function decodeEntities(s) {
 
 /**
  * Normalize XML/XSLT into real markup (<tag>),
- * supporting both &lt; and &amp;lt; (multi-pass decoding).
+ * supporting multi-pass decoding for &lt; and &amp;lt.
  */
 function normalizeXmlText(text) {
   if (!text) return "";
   let s = String(text);
+
   for (let i = 0; i < 6; i++) {
     const t0 = s.trimStart();
+
     const containsEscaped =
-      t0.startsWith("&lt;") || t0.startsWith("&amp;lt;") ||
-      t0.includes("&lt;xsl:") || t0.includes("&amp;lt;xsl:") ||
-      t0.includes("&lt;fo:")  || t0.includes("&amp;lt;fo:")  ||
-      t0.includes("&lt;?xml") || t0.includes("&amp;lt;?xml");
+      t0.startsWith("&lt;") || t0.startsWith("&amp;lt;") || t0.startsWith("&amp;amp;lt;") ||
+      t0.includes("&lt;xsl:") || t0.includes("&amp;lt;xsl:") || t0.includes("&amp;amp;lt;xsl:") ||
+      t0.includes("&lt;fo:")  || t0.includes("&amp;lt;fo:")  || t0.includes("&amp;amp;lt;fo:")  ||
+      t0.includes("&lt;?xml") || t0.includes("&amp;lt;?xml") || t0.includes("&amp;amp;lt;?xml");
 
     if (!containsEscaped) break;
 
@@ -174,10 +177,14 @@ function normalizeXmlText(text) {
     if (decoded === s) break;
     s = decoded;
 
+    // stop early if we have real markup now
     const hasRealTags = /<[A-Za-z?\/!]/.test(s.trimStart());
-    const stillEscaped = s.includes("&lt;xsl:") || s.includes("&amp;lt;xsl:") || s.includes("&lt;fo:") || s.includes("&amp;lt;fo:");
+    const stillEscaped =
+      s.includes("&lt;xsl:") || s.includes("&amp;lt;xsl:") || s.includes("&amp;amp;lt;xsl:") ||
+      s.includes("&lt;fo:")  || s.includes("&amp;lt;fo:")  || s.includes("&amp;amp;lt;fo:");
     if (hasRealTags && !stillEscaped) break;
   }
+
   return s;
 }
 
@@ -187,7 +194,7 @@ function normalizeByMode(text, mode = "smart") {
   if (mode === "aggressive") {
     let s = String(text || "");
     for (let i = 0; i < 6; i++) {
-      if (!s.includes("&lt;") && !s.includes("&amp;lt;")) break;
+      if (!s.includes("&lt;") && !s.includes("&amp;lt;") && !s.includes("&amp;amp;lt;")) break;
       const d = decodeEntities(s);
       if (d === s) break;
       s = d;
@@ -210,25 +217,26 @@ function downloadTextFile(filename, text, mime = "text/plain;charset=utf-8") {
 }
 
 // -------------------------
-// Tabs
+// Tabs (FIXED)
 // -------------------------
 function setTab(tab) {
   document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
   document.querySelector(`.tab[data-tab="${tab}"]`)?.classList.add("active");
 
   const pdf = document.getElementById("previewPdf");
-  const fo = document.getElementById("previewFo");
+  const editors = document.getElementById("previewEditors");
   const dto = document.getElementById("previewDto");
+
   if (pdf) pdf.hidden = tab !== "pdf";
-  if (fo) fo.hidden = tab !== "fo";
+  if (editors) editors.hidden = tab !== "editors";
   if (dto) dto.hidden = tab !== "dto";
 }
 
 // -------------------------
-// XSLT: detect roots
-// (works even if xslt is escaped, because normalizeXmlText decodes it)
+// XSLT: detect roots (FIXED regex to real '<')
 // -------------------------
 function detectRootsFromXslt(xsltText) {
+  // Work with normalized markup because presets may be escaped.
   xsltText = normalizeXmlText(xsltText);
 
   const matches = [];
@@ -260,7 +268,7 @@ function detectRootsFromXslt(xsltText) {
 }
 
 // -------------------------
-// CRM compat patch (demo: minimal same as production)
+// CRM compat patch (FIXED to real '<')
 // -------------------------
 function replaceBalancedCalls(text, fnName, replacer) {
   let i = 0, out = "";
@@ -323,12 +331,14 @@ function replaceBalancedCalls(text, fnName, replacer) {
 function patchCrmFunctionsForPreview(xsltText) {
   xsltText = normalizeXmlText(xsltText);
 
+  // crm:appdata param -> appdata
   xsltText = xsltText.replace(
     /<xsl:param\b([^>]*?)\bname=(["'])crm:appdata\2([^>]*?)\/?>/gi,
     (m, a, q, b) => `<xsl:param${a}name=${q}appdata${q}${b}/>`
   );
   xsltText = xsltText.replace(/\$crm:appdata\b/g, "$appdata");
 
+  // common CRM helpers -> safe fallbacks
   xsltText = xsltText.replace(/crm:FormatDate\s*\(\s*([^)]+?)\s*\)/g, "string($1)");
   xsltText = xsltText.replace(
     /crm:ToUpperCase\s*\(\s*([^)]+?)\s*\)/g,
@@ -352,7 +362,7 @@ function patchCrmFunctionsForPreview(xsltText) {
 }
 
 // -------------------------
-// FO -> PDF-look renderer (same idea as production, minimal styling)
+// FO -> PDF-look renderer
 // -------------------------
 const FO_NS = "http://www.w3.org/1999/XSL/Format";
 function foAttr(el, name) { return el?.getAttribute?.(name) ?? ""; }
@@ -552,7 +562,7 @@ function renderFoDocumentToPdfLook(outDoc) {
 }
 
 // -------------------------
-// Output detection
+// Output detection (FIXED to real '<')
 // -------------------------
 function detectXsltOutput(xsltText, outDoc, resultText) {
   if (outDoc && isParserError(outDoc)) return "PARSERERROR";
@@ -578,7 +588,7 @@ function detectXsltOutput(xsltText, outDoc, resultText) {
 }
 
 // -------------------------
-// DTO info (demo page)
+// DTO info page
 // -------------------------
 function renderDtoPage(settings) {
   const host = document.getElementById("previewDto");
@@ -614,7 +624,7 @@ function renderDtoPage(settings) {
 }
 
 // -------------------------
-// Diagnostics (minimal)
+// Diagnostics
 // -------------------------
 function renderDiagnostics(issues) {
   const host = document.getElementById("diag");
@@ -645,14 +655,14 @@ function diagnoseQuick({ xsltNorm, xmlNorm, xsltDoc, xmlDoc, outDoc, outText }) 
   const add = (severity, code, title, message, fix, snippet) =>
     issues.push({ severity, code, title, message, fix, snippet });
 
-  if (xmlDoc && isParserError(xmlDoc)) add("ERROR", "XML_PARSE", "Source XML parsererror", "Source XML is not valid XML.", "Pick another demo preset or fix XML.", "");
-  if (xsltDoc && isParserError(xsltDoc)) add("ERROR", "XSLT_PARSE", "XSLT parsererror", "Stylesheet is not valid XML.", "Pick another demo preset or fix XSLT.", "");
+  if (xmlDoc && isParserError(xmlDoc)) add("ERROR", "XML_PARSE", "Source XML parsererror", "Source XML is not valid XML.", "Open another XML or fix XML.", "");
+  if (xsltDoc && isParserError(xsltDoc)) add("ERROR", "XSLT_PARSE", "XSLT parsererror", "Stylesheet is not valid XML.", "Open another XSLT or fix XSLT.", "");
   if (outDoc && isParserError(outDoc)) {
     const pe = outDoc.getElementsByTagName("parsererror")[0];
     add("ERROR", "XSLT_RUNTIME", "Transform returned parsererror", (pe?.textContent || "parsererror").slice(0, 260), "Try compat patch or check match/root.", outText?.slice(0, 220));
   }
-  if (xsltNorm && xsltNorm.trim().startsWith("&lt;")) add("WARN", "XSLT_ESCAPED", "XSLT is escaped", "XSLT contains &lt;...&gt; entities. Decoder will try to normalize.", "Use decode mode Aggressive if needed.", xsltNorm.slice(0, 140));
-  if (xmlNorm && xmlNorm.trim().startsWith("&lt;")) add("WARN", "XML_ESCAPED", "XML is escaped", "XML contains &lt;...&gt; entities. Decoder will try to normalize.", "Use decode mode Aggressive if needed.", xmlNorm.slice(0, 140));
+  if (xsltNorm && (xsltNorm.includes("&lt;") || xsltNorm.includes("&amp;lt;"))) add("WARN", "XSLT_ESCAPED", "XSLT is escaped", "XSLT contains escaped entities. Decoder will try to normalize.", "Use decode mode Aggressive if needed.", xsltNorm.slice(0, 140));
+  if (xmlNorm && (xmlNorm.includes("&lt;") || xmlNorm.includes("&amp;lt;"))) add("WARN", "XML_ESCAPED", "XML is escaped", "XML contains escaped entities. Decoder will try to normalize.", "Use decode mode Aggressive if needed.", xmlNorm.slice(0, 140));
   return issues;
 }
 
@@ -700,6 +710,9 @@ async function runTransform(xsltTextInput, xmlTextInput) {
   document.getElementById("xsltAnalysis")?.replaceChildren(document.createTextNode("Detected output: " + outputType));
   renderDiagnostics(diagnoseQuick({ xsltNorm: xsltTextInputNorm, xmlNorm: xmlTextNorm, xsltDoc, xmlDoc, outDoc, outText: raw }));
 
+  // DTO info always updated
+  renderDtoPage(settings);
+
   const preview = document.getElementById("previewPdf");
   if (preview) preview.innerHTML = "";
 
@@ -723,8 +736,8 @@ async function runTransform(xsltTextInput, xmlTextInput) {
 }
 
 // -------------------------
-// Demo presets (includes your escaped templates as-is)
-// normalizeXmlText will decode them when running.
+// Demo presets (same as you had, unchanged content)
+// NOTE: We'll decode to readable markup when loading into editors.
 // -------------------------
 const DEMO_PRESETS = [
   {
@@ -738,9 +751,6 @@ const DEMO_PRESETS = [
   xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
   xmlns="http://www.w3.org/1999/XSL/Format"
   xmlns:crm="urn:crm">
-
-  <!-- (Demo) Your full FO template can be pasted here if you want.
-       For demo, we keep it as escaped-friendly input. -->
 
   <xsl:param name="crm:appdata" />
 
@@ -814,7 +824,7 @@ const DEMO_PRESETS = [
     docType: "sales",
     lockDocType: true,
     decodeMode: "smart",
-    xslt: null, // will be copied from A on load
+    xslt: null, // copied from A on init
     xml: `<?xml version="1.0" encoding="UTF-8"?>
 <SupplyAgreementDto ID="D-2001">
   <ProductionSiteCode></ProductionSiteCode>
@@ -834,20 +844,20 @@ const DEMO_PRESETS = [
     docType: "auto",
     lockDocType: false,
     decodeMode: "smart",
-    xslt: `&lt;?xml version="1.0" ?&gt;
-&lt;xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"&gt;
-    &lt;xsl:output method="text" /&gt;
-    &lt;xsl:template match="/*"&gt;
-        &lt;xsl:text&gt;Huoltotöiden vuoksi keskeytämme sähkönjakelun. Pahoittelemme häiriötä.&lt;/xsl:text&gt;
-        &lt;xsl:value-of select="Event"/&gt;
-        &lt;xsl:for-each select="Event[position()&gt;1]"&gt;
-            &lt;xsl:text&gt;, &lt;/xsl:text&gt;
-            &lt;xsl:value-of select="."/&gt;
-        &lt;/xsl:for-each&gt;
-        &lt;xsl:text&gt; &lt;/xsl:text&gt;
-        &lt;xsl:value-of select="Address"/&gt;
-    &lt;/xsl:template&gt;
-&lt;/xsl:stylesheet&gt;`,
+    xslt: `<?xml version="1.0" ?>
+<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+  <xsl:output method="text" />
+  <xsl:template match="/*">
+    <xsl:text>Huoltotöiden vuoksi keskeytämme sähkönjakelun. Pahoittelemme häiriötä.</xsl:text>
+    <xsl:value-of select="Event"/>
+    <xsl:for-each select="Event[position()>1]">
+      <xsl:text>, </xsl:text>
+      <xsl:value-of select="."/>
+    </xsl:for-each>
+    <xsl:text> </xsl:text>
+    <xsl:value-of select="Address"/>
+  </xsl:template>
+</xsl:stylesheet>`,
     xml: `<?xml version="1.0" encoding="UTF-8"?>
 <GsmMessage>
   <Event>12.03.2026 klo 10:00–12:00</Event>
@@ -862,50 +872,46 @@ const DEMO_PRESETS = [
     docType: "invoice",
     lockDocType: true,
     decodeMode: "smart",
-    xslt: `&lt;?xml version="1.0" ?&gt;
-&lt;xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:crm="urn:crm"&gt;
-    &lt;xsl:output method="html" /&gt;
-    &lt;xsl:template match="/Finvoice"&gt;
-        &lt;xsl:text disable-output-escaping='yes'&gt;&amp;lt;!DOCTYPE html&amp;gt;&lt;/xsl:text&gt;
-        &lt;html lang="fi"&gt;
-            &lt;head&gt;
-                &lt;style&gt;
-                    p {
-                    line-height: 107%;
-                    font-size: 11.0pt;
-                    font-family: "Calibri",sans-serif;
-                    }
-                &lt;/style&gt;
-            &lt;/head&gt;
-            &lt;body&gt;
-                &lt;p&gt;Hei,&lt;/p&gt;
-                &lt;p&gt;Tässä sähköpostiin lähetettävä esimerkkilasku.&lt;/p&gt;
-                &lt;p&gt;
-                    &lt;b&gt;LASKUN MAKSUTIEDOT:&lt;/b&gt;&lt;br/&gt;
-                    Saaja: sähköyhtiö&lt;br/&gt;
-                    Tilinumero: &lt;xsl:value-of select="EpiDetails/EpiPartyDetails/EpiBeneficiaryPartyDetails/EpiAccountID"/&gt;&lt;br/&gt;
-                    Viitenumero: &lt;xsl:value-of select ="InvoiceDetails/AgreementIdentifier"/&gt;&lt;br/&gt;
-                    Summa: &lt;xsl:value-of select ="EpiDetails/EpiPaymentInstructionDetails/EpiInstructedAmount"/&gt; €&lt;br/&gt;
-                    Eräpäivä: &lt;xsl:value-of select="crm:FormatPeriod(EpiDetails/EpiPaymentInstructionDetails/EpiDateOptionDate,'','yyyyMMdd')"/&gt;
-                &lt;/p&gt;
-                &lt;p&gt;
-                    Käytä tätä viivakoodia, jos haluat maksaa laskusi virtuaaliviivakoodilla: &lt;xsl:value-of select="VirtualBankBarcode" /&gt;
-                &lt;/p&gt;
-                &lt;p&gt;
-                    &lt;b&gt;LASKUN TIEDOT:&lt;/b&gt;&lt;br/&gt;
-                    Asiakas: &lt;xsl:value-of select="BuyerPartyDetails/BuyerOrganisationName"/&gt;&lt;br/&gt;
-                    Asiakasnumero: &lt;xsl:value-of select="InvoiceDetails/SellersBuyerIdentifier"/&gt;&lt;br/&gt;
-                    Lasku: &lt;xsl:value-of select="InvoiceDetails/InvoiceNumber"/&gt;&lt;br/&gt;
-                    Laskun päiväys: &lt;xsl:value-of select="crm:FormatPeriod(InvoiceDetails/InvoiceDate,'','yyyyMMdd')" /&gt;
-                &lt;/p&gt;
-                &lt;p&gt;
-                    Ystävällisin terveisin,&lt;br/&gt;
-                    sähköyhtiö&lt;br/&gt;
-                &lt;/p&gt;
-            &lt;/body&gt;
-        &lt;/html&gt;
-    &lt;/xsl:template&gt;
-&lt;/xsl:stylesheet&gt;`,
+    xslt: `<?xml version="1.0" ?>
+<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:crm="urn:crm">
+  <xsl:output method="html" />
+  <xsl:template match="/Finvoice">
+    <xsl:text disable-output-escaping='yes'>&lt;!DOCTYPE html&gt;</xsl:text>
+    <html lang="fi">
+      <head>
+        <style>
+          p { line-height: 107%; font-size: 11.0pt; font-family: "Calibri",sans-serif; }
+        </style>
+      </head>
+      <body>
+        <p>Hei,</p>
+        <p>Tässä sähköpostiin lähetettävä esimerkkilasku.</p>
+        <p>
+          <b>LASKUN MAKSUTIEDOT:</b><br/>
+          Saaja: sähköyhtiö<br/>
+          Tilinumero: <xsl:value-of select="EpiDetails/EpiPartyDetails/EpiBeneficiaryPartyDetails/EpiAccountID"/><br/>
+          Viitenumero: <xsl:value-of select ="InvoiceDetails/AgreementIdentifier"/><br/>
+          Summa: <xsl:value-of select ="EpiDetails/EpiPaymentInstructionDetails/EpiInstructedAmount"/> €<br/>
+          Eräpäivä: <xsl:value-of select="crm:FormatPeriod(EpiDetails/EpiPaymentInstructionDetails/EpiDateOptionDate,'','yyyyMMdd')"/>
+        </p>
+        <p>
+          Käytä tätä viivakoodia, jos haluat maksaa laskusi virtuaaliviivakoodilla: <xsl:value-of select="VirtualBankBarcode" />
+        </p>
+        <p>
+          <b>LASKUN TIEDOT:</b><br/>
+          Asiakas: <xsl:value-of select="BuyerPartyDetails/BuyerOrganisationName"/><br/>
+          Asiakasnumero: <xsl:value-of select="InvoiceDetails/SellersBuyerIdentifier"/><br/>
+          Lasku: <xsl:value-of select="InvoiceDetails/InvoiceNumber"/><br/>
+          Laskun päiväys: <xsl:value-of select="crm:FormatPeriod(InvoiceDetails/InvoiceDate,'','yyyyMMdd')" />
+        </p>
+        <p>
+          Ystävällisin terveisin,<br/>
+          sähköyhtiö<br/>
+        </p>
+      </body>
+    </html>
+  </xsl:template>
+</xsl:stylesheet>`,
     xml: `<?xml version="1.0" encoding="UTF-8"?>
 <Finvoice>
   <EpiDetails>
@@ -936,12 +942,25 @@ const DEMO_PRESETS = [
   }
 ];
 
-// copy XSLT from first contract preset to B preset
+// copy XSLT from A to B
 DEMO_PRESETS.find(p => p.id === "contract_fo_b").xslt = DEMO_PRESETS.find(p => p.id === "contract_fo_a").xslt;
 
 // -------------------------
-// Demo preset apply
+// Demo preset apply (FIXED: selection shown + optional auto-apply on change)
 // -------------------------
+function updateSelectionUi(preset) {
+  const nameEl = document.getElementById("selectedPresetName");
+  if (nameEl) nameEl.textContent = preset?.name || "-";
+
+  const filesEl = document.getElementById("loadedFilesLabel");
+  if (filesEl) {
+    const parts = [];
+    if (loadedFileLabels.xslt) parts.push(`XSLT: ${loadedFileLabels.xslt}`);
+    if (loadedFileLabels.xml) parts.push(`XML: ${loadedFileLabels.xml}`);
+    filesEl.textContent = parts.length ? parts.join(" • ") : "-";
+  }
+}
+
 function applyDemoPreset(presetId, { autorun = true } = {}) {
   const p = DEMO_PRESETS.find(x => x.id === presetId);
   if (!p) return;
@@ -957,18 +976,27 @@ function applyDemoPreset(presetId, { autorun = true } = {}) {
   if (lock) lock.checked = !!p.lockDocType;
   if (decode) decode.value = p.decodeMode ?? "smart";
 
-  if (xsltEditor) xsltEditor.value = p.xslt || "";
-  if (xmlEditor) xmlEditor.value = p.xml || "";
+  // Decode into readable markup for UI
+  const mode = decode?.value || "smart";
+  const xsltReadable = normalizeByMode(p.xslt || "", mode);
+  const xmlReadable  = normalizeByMode(p.xml || "", mode);
 
-  loadedXsltText = p.xslt || "";
+  if (xsltEditor) xsltEditor.value = xsltReadable;
+  if (xmlEditor) xmlEditor.value = xmlReadable;
 
-  const settings = getDocSettings(p.xslt || "");
+  loadedXsltText = xsltReadable;
+  loadedXmlText = xmlReadable;
+  loadedFileLabels = { xslt: `preset:${p.id}`, xml: `preset:${p.id}` };
+
+  const settings = getDocSettings(xsltReadable);
   lastDetectedRoot = settings.wantedRoot;
   lastDetectedByXslt = settings.detectedRoot;
   lastDetectedCandidates = settings.candidates;
 
+  updateSelectionUi(p);
   renderDtoPage(settings);
-  log(`DEMO: loaded preset → ${p.name} (root: ${settings.wantedRoot})`);
+
+  log(`Loaded preset → ${p.name} (root: ${settings.wantedRoot})`);
 
   if (autorun) runFromEditors();
 }
@@ -986,6 +1014,7 @@ async function runFromEditors() {
 
   // Snapshot for reset
   if (!loadedXsltText && xsltText.trim()) loadedXsltText = xsltText;
+  if (!loadedXmlText && xmlText.trim()) loadedXmlText = xmlText;
 
   const settings = getDocSettings(xsltText);
   lastDetectedRoot = settings.wantedRoot;
@@ -1004,15 +1033,12 @@ function generateXmlFromRoot() {
   const xsltText = xsltEditor.value || loadedXsltText || "";
   const settings = getDocSettings(xsltText);
 
-  // Minimal demo XML generator: chooses by wanted root
   const root = settings.wantedRoot || "SupplyAgreementDto";
 
   if (/Finvoice/i.test(root)) {
-    // just reload invoice preset xml as "generated"
     const preset = DEMO_PRESETS.find(p => p.id === "invoice_html");
-    xmlEditor.value = preset?.xml || xmlEditor.value;
+    xmlEditor.value = normalizeByMode(preset?.xml || xmlEditor.value, settings.decodeMode);
   } else if (/SupplyAgreementDto/i.test(root)) {
-    // generate a simple contract xml using product id from current xml if present
     const current = normalizeXmlText(xmlEditor.value || "");
     const match = current.match(/<ID>\s*(\d+)\s*<\/ID>/i);
     const pid = match ? match[1] : "100";
@@ -1028,13 +1054,11 @@ function generateXmlFromRoot() {
   <Product><ID>${pid}</ID><Name>Generated Product ${pid}</Name><IsNpsProduct>false</IsNpsProduct></Product>
 </SupplyAgreementDto>`;
   } else {
-    // generic xml
     xmlEditor.value = `<?xml version="1.0" encoding="UTF-8"?><Root><Value>DEMO</Value></Root>`;
   }
 
   lastDetectedRoot = root;
-  renderDtoPage(settings);
-  log("DEMO: XML generated for root: " + root);
+  log("XML generated for root: " + root);
 }
 
 function resetXslt() {
@@ -1045,6 +1069,17 @@ function resetXslt() {
     log("XSLT reset to loaded snapshot.");
   } else {
     log("WARN: No loaded snapshot.");
+  }
+}
+
+function resetXml() {
+  const xmlEditor = document.getElementById("xmlEditor");
+  if (!xmlEditor) return;
+  if (loadedXmlText && loadedXmlText.trim()) {
+    xmlEditor.value = loadedXmlText;
+    log("XML reset to loaded snapshot.");
+  } else {
+    log("WARN: No loaded XML snapshot.");
   }
 }
 
@@ -1063,6 +1098,111 @@ async function saveXml() {
 }
 
 // -------------------------
+// File support (ALL FILES + drag&drop)
+// -------------------------
+function guessKindByName(name = "", text = "") {
+  const n = (name || "").toLowerCase();
+  if (n.endsWith(".xslt") || n.endsWith(".xsl")) return "xslt";
+  if (n.endsWith(".xml")) return "xml";
+  if (n.endsWith(".html") || n.endsWith(".htm")) return "xslt"; // often output template; still put into XSLT slot if user wants preview
+  if (n.endsWith(".txt")) return "xml"; // could be data; fallback
+
+  const t = (text || "").toLowerCase();
+  if (t.includes("<xsl:stylesheet") || t.includes("http://www.w3.org/1999/xsl/transform")) return "xslt";
+  if (t.trim().startsWith("<")) return "xml";
+  if (t.includes("&lt;xsl:stylesheet") || t.includes("&amp;lt;xsl:stylesheet")) return "xslt";
+  return "unknown";
+}
+
+async function readFileAsText(file) {
+  // Works in browser + Electron
+  return await file.text();
+}
+
+async function loadFileIntoEditors(file, forcedKind = "auto") {
+  if (!file) return;
+  const text = await readFileAsText(file);
+  const mode = document.getElementById("decodeMode")?.value || "smart";
+  const normalized = normalizeByMode(text, mode);
+
+  let kind = forcedKind;
+  if (kind === "auto") kind = guessKindByName(file.name, text);
+
+  if (kind === "xslt") {
+    document.getElementById("xsltEditor").value = normalized;
+    loadedXsltText = normalized;
+    loadedFileLabels.xslt = file.name;
+    log(`Opened XSLT: ${file.name} (${file.size} bytes)`);
+  } else if (kind === "xml") {
+    document.getElementById("xmlEditor").value = normalized;
+    loadedXmlText = normalized;
+    loadedFileLabels.xml = file.name;
+    log(`Opened XML: ${file.name} (${file.size} bytes)`);
+  } else {
+    // unknown: choose by content heuristics
+    const g = guessKindByName(file.name, text);
+    if (g === "xslt") {
+      document.getElementById("xsltEditor").value = normalized;
+      loadedXsltText = normalized;
+      loadedFileLabels.xslt = file.name;
+      log(`Opened (auto→XSLT): ${file.name}`);
+    } else {
+      document.getElementById("xmlEditor").value = normalized;
+      loadedXmlText = normalized;
+      loadedFileLabels.xml = file.name;
+      log(`Opened (auto→XML): ${file.name}`);
+    }
+  }
+
+  updateSelectionUi({ name: "Custom (file)" });
+  renderDtoPage(getDocSettings(document.getElementById("xsltEditor")?.value || ""));
+}
+
+function installDragDrop() {
+  const xsltEditor = document.getElementById("xsltEditor");
+  const xmlEditor = document.getElementById("xmlEditor");
+
+  const attach = (el, kind) => {
+    if (!el) return;
+    el.addEventListener("dragover", (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; });
+    el.addEventListener("drop", async (e) => {
+      e.preventDefault();
+      if (!guardDemoOrLock()) return;
+      const file = e.dataTransfer.files?.[0];
+      if (file) await loadFileIntoEditors(file, kind);
+    });
+  };
+
+  attach(xsltEditor, "xslt");
+  attach(xmlEditor, "xml");
+
+  // Also allow dropping anywhere -> auto
+  document.addEventListener("dragover", (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; });
+  document.addEventListener("drop", async (e) => {
+    // if dropped on textarea handlers already handled, this will still run; avoid double by checking target
+    if (e.target === xsltEditor || e.target === xmlEditor) return;
+    e.preventDefault();
+    if (!guardDemoOrLock()) return;
+    const file = e.dataTransfer.files?.[0];
+    if (file) await loadFileIntoEditors(file, "auto");
+  });
+}
+
+// -------------------------
+// Guard helper (define BEFORE binding)
+// -------------------------
+function guarded(fn) {
+  return (e) => {
+    if (!guardDemoOrLock()) {
+      e?.preventDefault?.();
+      e?.stopPropagation?.();
+      return;
+    }
+    return fn(e);
+  };
+}
+
+// -------------------------
 // Init
 // -------------------------
 window.addEventListener("DOMContentLoaded", () => {
@@ -1073,39 +1213,77 @@ window.addEventListener("DOMContentLoaded", () => {
   }
   setInterval(updateDemoBadge, 30_000);
 
-  // tabs
+  // Tabs (FIXED)
   document.querySelectorAll(".tab").forEach(btn => {
-    btn.addEventListener("click", () => {
-      if (!guardDemoOrLock()) return;
-      setTab(btn.dataset.tab);
-    });
+    btn.addEventListener("click", guarded(() => setTab(btn.dataset.tab)));
   });
 
   // fill presets
   const sel = document.getElementById("demoPreset");
   if (sel) {
-    sel.innerHTML = DEMO_PRESETS.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join("");
+    sel.innerHTML = DEMO_PRESETS
+      .map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</option>`)
+      .join("");
     sel.value = DEMO_PRESETS[0]?.id || "";
   }
 
-  // robust click handling + demo guard
-  document.addEventListener("click", (e) => {
-    if (!guardDemoOrLock()) { e.preventDefault(); e.stopPropagation(); return; }
+  // preset selection should update immediately (FIXED)
+  document.getElementById("demoPreset")
+    ?.addEventListener("change", guarded((e) => {
+      const id = e.target.value;
+      const p = DEMO_PRESETS.find(x => x.id === id);
+      updateSelectionUi(p);
+      applyDemoPreset(id, { autorun: true });
+    }));
 
-    const btn = e.target.closest("button");
-    if (!btn) return;
+  // Buttons
+  document.getElementById("loadDemoPresetBtn")
+    ?.addEventListener("click", guarded(() => {
+      applyDemoPreset(document.getElementById("demoPreset")?.value, { autorun: true });
+    }));
 
-    switch (btn.id) {
-      case "loadDemoPresetBtn": applyDemoPreset(document.getElementById("demoPreset")?.value, { autorun: true }); break;
-      case "runFromEditorBtn": runFromEditors(); break;
-      case "genXmlBtn": generateXmlFromRoot(); break;
-      case "resetXsltBtn": resetXslt(); break;
-      case "saveXsltBtn": saveXslt(); break;
-      case "saveXmlBtn": saveXml(); break;
-      case "langFiBtn": document.documentElement.lang = "fi"; log("Language: FI (UI only)"); break;
-      case "langEnBtn": document.documentElement.lang = "en"; log("Language: EN (UI only)"); break;
-    }
-  }, true);
+  document.getElementById("runFromEditorBtn")
+    ?.addEventListener("click", guarded(() => runFromEditors()));
+
+  document.getElementById("genXmlBtn")
+    ?.addEventListener("click", guarded(() => generateXmlFromRoot()));
+
+  document.getElementById("resetXsltBtn")
+    ?.addEventListener("click", guarded(() => resetXslt()));
+
+  document.getElementById("saveXsltBtn")
+    ?.addEventListener("click", guarded(() => saveXslt()));
+
+  document.getElementById("saveXmlBtn")
+    ?.addEventListener("click", guarded(() => saveXml()));
+
+  // File buttons
+  const fileXslt = document.getElementById("fileXslt");
+  const fileXml = document.getElementById("fileXml");
+  const fileAny = document.getElementById("fileAny");
+
+  document.getElementById("openXsltBtn")?.addEventListener("click", guarded(() => fileXslt?.click()));
+  document.getElementById("openXmlBtn")?.addEventListener("click", guarded(() => fileXml?.click()));
+  document.getElementById("openAnyBtn")?.addEventListener("click", guarded(() => fileAny?.click()));
+
+  fileXslt?.addEventListener("change", guarded(async () => {
+    const f = fileXslt.files?.[0];
+    if (f) await loadFileIntoEditors(f, "xslt");
+    fileXslt.value = "";
+  }));
+  fileXml?.addEventListener("change", guarded(async () => {
+    const f = fileXml.files?.[0];
+    if (f) await loadFileIntoEditors(f, "xml");
+    fileXml.value = "";
+  }));
+  fileAny?.addEventListener("change", guarded(async () => {
+    const f = fileAny.files?.[0];
+    if (f) await loadFileIntoEditors(f, "auto");
+    fileAny.value = "";
+  }));
+
+  // Drag&Drop support
+  installDragDrop();
 
   // auto-load first preset
   applyDemoPreset(DEMO_PRESETS[0]?.id, { autorun: true });

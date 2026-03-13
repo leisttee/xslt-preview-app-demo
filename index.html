@@ -54,6 +54,7 @@
       color:var(--muted);
       font-size:12px;
       user-select:none;
+      white-space:nowrap;
     }
     .dot{ width:8px; height:8px; border-radius:50%; background:var(--ok); box-shadow:0 0 0 4px rgba(34,197,94,.15); }
     .dot.warn{ background:var(--warn); box-shadow:0 0 0 4px rgba(245,158,11,.15); }
@@ -73,17 +74,6 @@
       box-shadow: var(--shadow);
       overflow:hidden;
     }
-    .card .head{
-      padding:14px 14px 10px;
-      border-bottom:1px solid var(--line);
-      display:flex; align-items:center; justify-content:space-between; gap:10px;
-    }
-    .card .head h2{
-      margin:0;
-      font-size:14px;
-      color:#dbeafe;
-      letter-spacing:.2px;
-    }
     .card .body{ padding:14px; }
 
     label{ display:block; margin:10px 0 6px; font-size:12px; color:var(--muted); }
@@ -96,8 +86,6 @@
       color:var(--text);
       outline:none;
     }
-    .row{ display:flex; gap:10px; }
-    .row > * { flex:1; }
 
     button{
       appearance:none;
@@ -129,6 +117,7 @@
     .tabs{
       display:flex; gap:8px; padding:12px; border-bottom:1px solid var(--line);
       background: rgba(0,0,0,.10);
+      flex-wrap:wrap;
     }
     .tab{
       background: rgba(255,255,255,.06);
@@ -156,10 +145,6 @@
     .header, .footer{ color:#111827; }
     .content{ color:#111827; }
 
-    .editorBar{
-      display:flex; flex-wrap:wrap; gap:8px;
-      margin-bottom:10px;
-    }
     .analysis{
       margin:10px 0;
       padding:10px 12px;
@@ -236,6 +221,17 @@
     .diagItem.warn{ border-color: rgba(245,158,11,.45); }
     .diagItem.info{ border-color: rgba(34,197,94,.35); }
 
+    .currentSel{
+      margin-top:10px;
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background: rgba(0,0,0,.18);
+      font-size:12px;
+      color:#cbd5e1;
+    }
+    .currentSel b{ color:#e5e7eb; }
+
     /* Demo lock overlay */
     #demoLockOverlay{
       position:fixed; inset:0; z-index:99999;
@@ -256,16 +252,19 @@
     #demoLockOverlay h2{ margin:0 0 8px; font-size:22px; }
     #demoLockOverlay p{ margin:6px 0; color: rgba(255,255,255,.84); }
     #demoLockOverlay .small{ color: rgba(255,255,255,.70); font-size:12px; margin-top:10px; }
+
+    /* hide native file inputs */
+    input[type="file"]{ display:none; }
   </style>
 </head>
-<body>
 
+<body>
 <header>
   <div>
     <h1>XSLT Preview Demo</h1>
     <div class="sub">
-      Demo sisältää valmiit esimerkit (FO / TEXT / HTML), eikä salli tiedostojen lisäämistä.
-      <br/>Aikaraja: <b>24 h</b> ensimmäisestä käynnistyksestä → vanhentuessa <b>kova lukko</b>.
+      Demo sisältää valmiit esimerkit, mutta tukee myös tiedostojen avaamista (XSLT/XML/HTML/TXT).<br/>
+      Aikaraja: <b>24 h</b> ensimmäisestä käynnistyksestä.
     </div>
   </div>
 
@@ -289,6 +288,24 @@
         <button id="runFromEditorBtn" class="secondary" type="button">Run</button>
         <button id="genXmlBtn" class="ghost" type="button">Generate XML</button>
       </div>
+
+      <div class="currentSel" id="currentSelection">
+        <div><b>Selected preset:</b> <span id="selectedPresetName">-</span></div>
+        <div class="muted" style="margin-top:6px;">Tip: Voit myös raahata tiedostoja editoriin tai käyttää “Open …”.</div>
+        <div class="muted" style="margin-top:4px;"><b>Loaded files:</b> <span id="loadedFilesLabel">-</span></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <label>Tiedostot</label>
+      <div class="btnrow">
+        <button id="openXsltBtn" class="ghost" type="button">Open XSLT…</button>
+        <button id="openXmlBtn" class="ghost" type="button">Open XML…</button>
+        <button id="openAnyBtn" class="ghost" type="button">Open Any…</button>
+      </div>
+      <input id="fileXslt" type="file" accept="*/*" />
+      <input id="fileXml" type="file" accept="*/*" />
+      <input id="fileAny" type="file" accept="*/*" />
 
       <div class="divider"></div>
 
@@ -332,13 +349,13 @@
   <div class="card">
     <div class="tabs">
       <button class="tab active" data-tab="pdf" type="button">PDF‑look</button>
-      <button class="tab" data-tab="fo" type="button">Output + Editors</button>
-      <button class="tab" data-tab="dto" type="button">DTO Info</button>
+      <button class="tab" data-tab="editors" type="button">Editors (XSLT/XML)</button>
+ <!--     <button class="tab" data-tab="dto" type="button">DTO Info</button> -->
     </div>
 
     <div id="previewPdf" class="preview"></div>
 
-    <div id="previewFo" class="preview" hidden>
+    <div id="previewEditors" class="preview" hidden>
       <div class="analysis" id="xsltAnalysis">Detected output: unknown</div>
 
       <div class="editorGrid">
@@ -364,7 +381,6 @@
     </div>
 
     <div id="previewDto" class="preview" hidden></div>
-
   </div>
 </div>
 

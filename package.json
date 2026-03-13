@@ -1,7 +1,7 @@
 {
-  "name": "xslt-preview",
+  "name": "xslt-preview-DEMO",
   "version": "1.0.0",
-  "description": "XSLT Preview Tool",
+  "description": "XSLT Preview Tool DEMO",
   "main": "main.js",
   "author": "Teemu Leisto",
   "license": "MIT",
@@ -14,8 +14,8 @@
     "electron-builder": "^26.8.1"
   },
   "build": {
-    "appId": "fi.xslt.preview",
-    "productName": "XSLT Preview Tool",
+    "appId": "xslt-preview-DEMO",
+    "productName": "xslt-preview-DEMO",
     "files": [
       "main.js",
       "index.html",
