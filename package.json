@@ -14,14 +14,16 @@
     "electron-builder": "^26.8.1"
   },
   "build": {
-    "appId": "xslt-preview-DEMO",
+    "appId": "fi.synerall.xslt-preview-demo",
     "productName": "xslt-preview-DEMO",
+    "asar": true,
     "files": [
       "main.js",
+      "preload.js",
       "index.html",
-      "style.css",
-      "renders.js",
-      "build/**"
+      "demo.js",
+      "build/**",
+      "assets/**"
     ],
     "directories": {
       "buildResources": "build",
